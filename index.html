@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Inventory Dashboard - MVP Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #4CAF50; color: white; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    tr:hover { background-color: #f0f0f0; }
+    input, select { margin-bottom: 15px; padding: 10px; width: 250px; border: 1px solid #ddd; border-radius: 4px; }
+    button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+    button:hover { background-color: #45a049; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
+    h1, h2 { color: #333; margin-top: 30px; }
+    .form-section { background: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0; }
+    .result { padding: 15px; margin: 15px 0; border-radius: 4px; }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .loading { color: #666; font-style: italic; }
+    .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+    .status-online { background-color: #4CAF50; }
+    .status-offline { background-color: #f44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Inventory Dashboard - MVP Test</h1>
+    
+    <!-- Connection Status -->
+    <div class="form-section">
+      <h3>🔗 Connection Status</h3>
+      <p>
+        <span class="status-indicator" id="connectionStatus"></span>
+        <span id="connectionText">Testing connection...</span>
+      </p>
+      <button onclick="testConnection()">Test Connection</button>
+      <button onclick="testSheets()">Test Sheet Connections</button>
+    </div>
+
+    <!-- Inventory Snapshot -->
+    <h2>📋 Inventory Snapshot</h2>
+    <div class="form-section">
+      <button onclick="loadSnapshot()">Refresh Snapshot</button>
+      <button onclick="clearSnapshot()">Clear Display</button>
+    </div>
+  <table id="snapshotTable">
+    <thead></thead>
+      <tbody>
+        <tr><td colspan="5" class="loading">Click "Refresh Snapshot" to load data...</td></tr>
+      </tbody>
+  </table>
+
+    <!-- Add Inventory Log -->
+    <h2>➕ Add Inventory Log</h2>
+    
+    <!-- Mode Information -->
+    <div class="form-section" style="background: #e3f2fd; border-left: 4px solid #2196F3;">
+      <h4>📚 How Each Mode Works:</h4>
+      <ul style="margin: 10px 0; padding-left: 20px;">
+        <li><strong>RECEIVING:</strong> Add new stock to a specific location (Shop/Warehouse)</li>
+        <li><strong>SALE:</strong> Reduce stock from Shop location (source = Shop)</li>
+        <li><strong>TRANSFER:</strong> Move stock between two locations (source → destination)</li>
+        <li><strong>ADJUSTMENT:</strong> Set exact stock level at a specific location (source = location to adjust)</li>
+      </ul>
+      <p style="margin: 10px 0; font-size: 14px; color: #666;">
+        <strong>Note:</strong> For ADJUSTMENT mode, select the actual location (Shop or Warehouse) where you want to set the stock level.
+        <br><strong>Important:</strong> Enter the NEW TOTAL stock level you want. The system will automatically calculate and log the change needed.
+        <br><strong>Example:</strong> If current stock is 5 and you want 10, enter 10. The log will show +5 (the change needed).
+        <br><strong>Note:</strong> ADJUSTMENT mode can set stock to any level, including 0 or negative values for corrections.
+      </p>
+    </div>
+    
+    <div class="form-section">
+  <form id="logForm">
+        <div>
+          <label for="sku">SKU:</label><br>
+          <input type="text" id="sku" name="sku" placeholder="Enter product SKU" required>
+        </div>
+        
+        <div>
+          <label for="quantity">Quantity:</label><br>
+          <input type="number" id="quantity" name="quantity" placeholder="Enter quantity" required>
+          <small style="color: #666;">For ADJUSTMENT: Enter the NEW TOTAL stock level (system will log the change)</small>
+        </div>
+        
+        <div>
+          <label for="mode">Mode:</label><br>
+          <select id="mode" name="mode" required>
+            <option value="">Select mode...</option>
+            <option value="RECEIVING">Receiving (add new stock to location)</option>
+            <option value="SALE">Sale (reduce stock from Shop)</option>
+            <option value="TRANSFER">Transfer (move stock between locations)</option>
+            <option value="ADJUSTMENT">Adjustment (set exact stock level at location)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="source">Source Location:</label><br>
+          <select id="source" name="source">
+            <option value="">Select source...</option>
+            <option value="Supplier">Supplier</option>
+            <option value="Shop">Shop</option>
+            <option value="Warehouse">Warehouse</option>
+          </select>
+          <small style="color: #666;">For ADJUSTMENT: Choose the location to adjust</small>
+        </div>
+        
+        <div>
+          <label for="destination">Destination Location:</label><br>
+          <select id="destination" name="destination">
+            <option value="">Select destination...</option>
+            <option value="Shop">Shop</option>
+            <option value="Warehouse">Warehouse</option>
+            <option value="Customer">Customer</option>
+            <option value="Wastage/Missing">Wastage/Missing</option>
+          </select>
+          <small style="color: #666;">For RECEIVING: Choose where to add stock</small>
+        </div>
+        
+        <div>
+          <label for="user">User:</label><br>
+          <input type="text" id="user" name="user" placeholder="Enter user name">
+        </div>
+        
+        <div>
+          <label for="notes">Notes:</label><br>
+          <input type="text" id="notes" name="notes" placeholder="Enter any notes">
+        </div>
+        
+        <button type="submit" id="submitBtn">Submit Log Entry</button>
+        <button type="button" onclick="clearForm()">Clear Form</button>
+  </form>
+    </div>
+
+    <!-- Results Display -->
+  <div id="logResult"></div>
+    
+    <!-- Debug Logs -->
+    <h2>🐛 Debug Logs</h2>
+    <div class="form-section">
+      <button onclick="refreshLogs()">Refresh Logs</button>
+      <button onclick="clearLogs()">Clear Logs</button>
+      <button onclick="downloadLogs()">Download Logs</button>
+    </div>
+    <div id="debugLogs" class="form-section" style="background: #f8f9fa; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;">
+      <div class="loading">Click "Refresh Logs" to view debug information...</div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const apiBase = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      testConnection();
+      setupFormValidation();
+    });
+
+    // ====== Connection Testing ======
+    function testConnection() {
+      const statusIndicator = document.getElementById('connectionStatus');
+      const statusText = document.getElementById('connectionText');
+      
+      statusIndicator.className = 'status-indicator';
+      statusText.textContent = 'Testing connection...';
+      
+      fetch(apiBase + "?action=getInventorySnapshot")
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === "success") {
+            statusIndicator.className = 'status-indicator status-online';
+            statusText.textContent = 'Connected successfully! Web app is responding.';
+          } else {
+            throw new Error(data.message || 'Unknown error from web app');
+          }
+        })
+        .catch(error => {
+          statusIndicator.className = 'status-indicator status-offline';
+          statusText.textContent = 'Connection failed: ' + error.message;
+          console.error('Connection test failed:', error);
+        });
+    }
+
+    function testSheets() {
+      const resultDiv = document.getElementById('logResult');
+      resultDiv.innerHTML = '<div class="result loading">Testing sheet connections...</div>';
+      
+      fetch(apiBase + "?action=testSheets")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            let html = '<div class="result success"><h4>✅ Sheet Connection Test Results:</h4>';
+            for (const [sheet, status] of Object.entries(data.results)) {
+              const icon = status.includes('NULL') ? '❌' : '✅';
+              html += `<p>${icon} ${sheet}: ${status}</p>`;
+            }
+            html += '</div>';
+            resultDiv.innerHTML = html;
+            // Refresh logs to show the test details
+            setTimeout(() => refreshLogs(), 1000);
+          } else {
+            resultDiv.innerHTML = `<div class="result error">❌ Test failed: ${data.message}</div>`;
+          }
+        })
+        .catch(error => {
+          console.error('Sheet test error:', error);
+          resultDiv.innerHTML = `<div class="result error">❌ Test failed: ${error.message}</div>`;
+        });
+    }
+
+    // ====== Load Inventory Snapshot ======
+    function loadSnapshot() {
+      const table = document.getElementById("snapshotTable");
+      const tbody = table.querySelector("tbody");
+      
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading snapshot data...</td></tr>';
+      
+      fetch(apiBase + "?action=getInventorySnapshot")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success" && data.data && data.data.length > 0) {
+            displaySnapshot(data.data);
+          } else {
+            tbody.innerHTML = '<tr><td colspan="5">No snapshot data available</td></tr>';
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching snapshot:", error);
+          tbody.innerHTML = '<tr><td colspan="5" class="error">Error loading snapshot: ' + error.message + '</td></tr>';
+        });
+    }
+
+    function displaySnapshot(data) {
+          const table = document.getElementById("snapshotTable");
+          const thead = table.querySelector("thead");
+          const tbody = table.querySelector("tbody");
+
+      // Headers
+      const headers = data[0];
+          thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+
+      // Data rows
+          tbody.innerHTML = "";
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        tbody.innerHTML += "<tr>" + row.map(cell => `<td>${cell || ''}</td>`).join("") + "</tr>";
+      }
+    }
+
+    function clearSnapshot() {
+      const table = document.getElementById("snapshotTable");
+      const thead = table.querySelector("thead");
+      const tbody = table.querySelector("tbody");
+      
+      thead.innerHTML = "";
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">Click "Refresh Snapshot" to load data...</td></tr>';
+    }
+
+    // ====== Add Inventory Log ======
+    function setupFormValidation() {
+      const form = document.getElementById('logForm');
+      const modeSelect = document.getElementById('mode');
+      const sourceSelect = document.getElementById('source');
+      const destSelect = document.getElementById('destination');
+      
+      // Dynamic form validation based on mode
+      modeSelect.addEventListener('change', function() {
+        const mode = this.value;
+        
+        // Reset selections
+        sourceSelect.value = '';
+        destSelect.value = '';
+        
+        // Enable/disable fields based on mode
+        switch(mode) {
+          case 'RECEIVING':
+            sourceSelect.disabled = true;
+            destSelect.disabled = false;
+            break;
+          case 'SALE':
+            sourceSelect.disabled = false;
+            destSelect.disabled = true;
+            break;
+          case 'TRANSFER':
+            sourceSelect.disabled = false;
+            destSelect.disabled = false;
+            break;
+          case 'ADJUSTMENT':
+            sourceSelect.disabled = false;
+            destSelect.disabled = true;
+            break;
+          default:
+            sourceSelect.disabled = true;
+            destSelect.disabled = true;
+        }
+      });
+    }
+
+    document.getElementById("logForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const resultDiv = document.getElementById('logResult');
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      
+      // Create the data object for bulk submission
+      const formData = new FormData(e.target);
+      const logEntry = {
+        sku: formData.get('sku'),
+        quantity: parseInt(formData.get('quantity'), 10),
+        mode: formData.get('mode'),
+        source: formData.get('source'),
+        destination: formData.get('destination'),
+        user: formData.get('user'),
+        notes: formData.get('notes')
+      };
+      
+      // Convert to bulk format (array with single entry)
+      const bulkData = JSON.stringify([logEntry]);
+      
+      // Send as bulk data parameter
+      const params = new URLSearchParams({
+        action: 'addInventoryLog',
+        data: bulkData
+      });
+      
+      fetch(`${apiBase}?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            resultDiv.innerHTML = `<div class="result success">✅ Success! Log entry added successfully.<br>Message: ${data.message}<br>Count: ${data.count} entry processed</div>`;
+            e.target.reset();
+            // Refresh snapshot after successful log entry
+            setTimeout(() => loadSnapshot(), 1000);
+            // Refresh logs to show the operation details
+            setTimeout(() => refreshLogs(), 1500);
+          } else {
+            resultDiv.innerHTML = `<div class="result error">❌ Error: ${data.message}</div>`;
+          }
+        })
+        .catch(error => {
+          console.error('Submit error:', error);
+          resultDiv.innerHTML = `<div class="result error">❌ Request failed: ${error.message}</div>`;
+        })
+        .finally(() => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Log Entry';
+        });
+    });
+
+    function clearForm() {
+      document.getElementById('logForm').reset();
+      document.getElementById('logResult').innerHTML = '';
+    }
+
+    // ====== Debug Logs Management ======
+    function refreshLogs() {
+      const logsDiv = document.getElementById('debugLogs');
+      logsDiv.innerHTML = '<div class="loading">Fetching logs...</div>';
+      
+      fetch(apiBase + "?action=getLogs")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success" && data.logs && data.logs.length > 0) {
+            logsDiv.innerHTML = data.logs.join('\n');
+          } else {
+            logsDiv.innerHTML = '<div class="loading">No logs available</div>';
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching logs:', error);
+          logsDiv.innerHTML = '<div class="error">Error fetching logs: ' + error.message + '</div>';
+        });
+    }
+
+    function clearLogs() {
+      const logsDiv = document.getElementById('debugLogs');
+      logsDiv.innerHTML = '<div class="loading">Clearing logs...</div>';
+      
+      fetch(apiBase + "?action=clearLogs")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            logsDiv.innerHTML = '<div class="success">Logs cleared successfully</div>';
+          } else {
+            logsDiv.innerHTML = '<div class="error">Error clearing logs: ' + data.message + '</div>';
+          }
+        })
+        .catch(error => {
+          console.error('Error clearing logs:', error);
+          logsDiv.innerHTML = '<div class="error">Error clearing logs: ' + error.message + '</div>';
+        });
+    }
+
+    function downloadLogs() {
+      fetch(apiBase + "?action=getLogs")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success" && data.logs && data.logs.length > 0) {
+            const logText = data.logs.join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'debug-logs-' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          } else {
+            alert('No logs available to download');
+          }
+        })
+        .catch(error => {
+          console.error('Error downloading logs:', error);
+          alert('Error downloading logs: ' + error.message);
+        });
+    }
+  </script>
+</body>
+</html>

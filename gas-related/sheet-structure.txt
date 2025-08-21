@@ -1,0 +1,24 @@
+Product Inventory Tracker (Code Scanning) - Inventory Log.csv
+Purpose: Logs all inventory transactions.
+
+Columns: TransactionID, Timestamp, SKU, Quantity, Mode, SourceLocation, DestinationLocation, User, Notes
+Note: For adjustments, Quantity shows the actual change (positive for increase, negative for decrease)
+
+
+Product Inventory Tracker (Code Scanning) - Inventory Snapshot.csv
+Purpose: Provides a real-time snapshot of current stock levels.
+
+Columns: SnapshotID, SKU, Location, CurrentStock, LastUpdated
+Note: SnapshotID format is "SKU-LOCATION" (e.g., "ABC123-Shop", "ABC123-Warehouse")
+
+
+Product Inventory Tracker (Code Scanning) - Product Master.csv
+Purpose: Stores master product information, including dimensions and pricing.
+
+Columns: Image, SKU, Product Name, Variation Name, Price, Stock, Product Weight (kg), Product Length (cm), Product Width (cm), Product Height (cm)
+
+Product Inventory Tracker (Code Scanning) - Sales Snapshot
+Purpose: Provides a real-time snapshot of current sales data.
+
+Columns: SnapshotID, SKU, TotalSold, Last7Days, Last30Days, LastSoldDate, LastUpdated
+

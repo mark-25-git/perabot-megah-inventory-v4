@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Admin - Perabot Megah</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        /* Operation modes */
+        .operation-modes {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mode-tab {
+            padding: 12px 24px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mode-tab.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .mode-tab:hover:not(.active) {
+            background: #bdc3c7;
+        }
+
+        /* Form sections */
+        .form-section {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        /* Form styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #34495e;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        /* Status messages */
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Recent activity */
+        .recent-activity {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .activity-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .activity-table th,
+        .activity-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .activity-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .mode-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .mode-adjustment {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .mode-transfer {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .mode-receiving {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .mode-sale {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .operation-modes {
+                flex-direction: column;
+            }
+            
+            .mode-tab {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📦 Inventory Management System</h1>
+            <p>Admin Control Center - Perabot Megah</p>
+        </div>
+
+        <!-- Operation Mode Tabs -->
+        <div class="operation-modes">
+            <button class="mode-tab active" data-mode="adjustment">⚖️ Adjustment</button>
+            <button class="mode-tab" data-mode="transfer">🔄 Transfer</button>
+            <button class="mode-tab" data-mode="receiving">📦 Receiving</button>
+            <button class="mode-tab" data-mode="sale">💰 Sale</button>
+        </div>
+
+        <!-- Adjustment Mode Form -->
+        <div id="adjustment-section" class="form-section active">
+            <h2 class="section-title">⚖️ Inventory Adjustment</h2>
+            <p style="margin-bottom: 20px; color: #7f8c8d;">
+                Set the new total inventory level for a specific location. The system will automatically calculate the increase or decrease needed. Use this for stock counts, damage adjustments, or quality control corrections.
+            </p>
+            
+            <form id="adjustment-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="adjustment-sku">SKU *</label>
+                        <input type="text" id="adjustment-sku" name="sku" required placeholder="Enter product SKU">
+                    </div>
+                    <div class="form-group">
+                        <label for="adjustment-quantity">New Total Quantity *</label>
+                        <input type="number" id="adjustment-quantity" name="quantity" required min="0" placeholder="Enter new total stock level">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="adjustment-location">Location *</label>
+                    <select id="adjustment-location" name="source" required>
+                        <option value="">Select location</option>
+                        <option value="Shop">Shop</option>
+                        <option value="Warehouse">Warehouse</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="adjustment-user">User *</label>
+                        <input type="text" id="adjustment-user" name="user" required placeholder="Enter your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="adjustment-notes">Notes</label>
+                        <input type="text" id="adjustment-notes" name="notes" placeholder="Reason for adjustment">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Submit Adjustment</button>
+                    <button type="reset" class="btn btn-secondary">Reset Form</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Transfer Mode Form (Placeholder) -->
+        <div id="transfer-section" class="form-section">
+            <h2 class="section-title">🔄 Stock Transfer</h2>
+            <p style="color: #7f8c8d;">Move stock between Warehouse and Shop locations.</p>
+            <p style="color: #95a5a6; font-style: italic;">Coming soon...</p>
+        </div>
+
+        <!-- Receiving Mode Form (Placeholder) -->
+        <div id="receiving-section" class="form-section">
+            <h2 class="section-title">📦 Stock Receiving</h2>
+            <p style="color: #7f8c8d;">Record goods received from suppliers.</p>
+            <p style="color: #95a5a6; font-style: italic;">Coming soon...</p>
+        </div>
+
+        <!-- Sale Mode Form (Placeholder) -->
+        <div id="sale-section" class="form-section">
+            <h2 class="section-title">💰 Sales Recording</h2>
+            <p style="color: #7f8c8d;">Record sales from Shop location.</p>
+            <p style="color: #95a5a6; font-style: italic;">Coming soon...</p>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status-message" style="display: none;"></div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h2 class="section-title">📋 Recent Activity</h2>
+            <p style="margin-bottom: 15px; color: #7f8c8d;">
+                Last 10 operations performed. Click refresh to see latest updates.
+            </p>
+            <button id="refresh-activity" class="btn btn-secondary">🔄 Refresh Activity</button>
+            
+            <table class="activity-table" id="activity-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>SKU</th>
+                        <th>Operation</th>
+                        <th>Quantity</th>
+                        <th>Location</th>
+                        <th>User</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #95a5a6;">No recent activity</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
+        
+        // State management
+        let currentMode = 'adjustment';
+        let recentActivity = [];
+
+        // DOM elements
+        const modeTabs = document.querySelectorAll('.mode-tab');
+        const formSections = document.querySelectorAll('.form-section');
+        const adjustmentForm = document.getElementById('adjustment-form');
+        const statusMessage = document.getElementById('status-message');
+        const refreshActivityBtn = document.getElementById('refresh-activity');
+        const activityTable = document.getElementById('activity-table');
+
+        // Initialize the application
+        function init() {
+            setupEventListeners();
+            loadRecentActivity();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Mode tab switching
+            modeTabs.forEach(tab => {
+                tab.addEventListener('click', () => switchMode(tab.dataset.mode));
+            });
+
+            // Form submission
+            adjustmentForm.addEventListener('submit', handleAdjustmentSubmit);
+
+            // Refresh activity
+            refreshActivityBtn.addEventListener('click', loadRecentActivity);
+        }
+
+        // Switch between operation modes
+        function switchMode(mode) {
+            // Update active tab
+            modeTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+            });
+
+            // Update active form section
+            formSections.forEach(section => {
+                section.classList.toggle('active', section.id === `${mode}-section`);
+            });
+
+            currentMode = mode;
+            hideStatusMessage();
+        }
+
+        // Handle adjustment form submission
+        async function handleAdjustmentSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(adjustmentForm);
+            const formDataObj = Object.fromEntries(formData.entries());
+            
+            // Add required parameters for adjustment mode
+            const params = new URLSearchParams({
+                action: 'adminOperation',
+                adminMode: 'Adjustment',
+                sku: formDataObj.sku,
+                quantity: formDataObj.quantity,
+                source: formDataObj.source,
+                destination: formDataObj.source, // For adjustment, source = destination
+                user: formDataObj.user,
+                notes: formDataObj.notes
+            });
+
+            try {
+                showStatusMessage('Processing adjustment...', 'info');
+                
+                const response = await fetch(`${API_BASE}?${params.toString()}`);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showStatusMessage(`✅ Adjustment successful! Transaction ID: ${result.transactionId}`, 'success');
+                    adjustmentForm.reset();
+                    loadRecentActivity(); // Refresh activity table
+                } else {
+                    showStatusMessage(`❌ Error: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Adjustment error:', error);
+                showStatusMessage('❌ Network error. Please try again.', 'error');
+            }
+        }
+
+        // Load recent activity from the system
+        async function loadRecentActivity() {
+            try {
+                // For now, we'll show a placeholder since we need to implement
+                // a way to fetch recent activity from the Google Apps Script
+                showRecentActivityPlaceholder();
+            } catch (error) {
+                console.error('Error loading activity:', error);
+                showRecentActivityPlaceholder();
+            }
+        }
+
+        // Show placeholder for recent activity
+        function showRecentActivityPlaceholder() {
+            const tbody = activityTable.querySelector('tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #95a5a6;">
+                        Recent activity will appear here after operations are performed.<br>
+                        <small>Note: Activity tracking will be implemented in the next phase.</small>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Utility functions
+        function showStatusMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(hideStatusMessage, 5000);
+            }
+        }
+
+        function hideStatusMessage() {
+            statusMessage.style.display = 'none';
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
