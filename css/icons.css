@@ -1,0 +1,283 @@
+/* ========================================
+   PM INVENTORY SYSTEM V4 - ICON FONT
+   ======================================== */
+
+/* Icon Font using Material Icons */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+/* Icon Base Classes */
+.icon {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+.icon-sm {
+  font-size: 16px;
+}
+
+.icon-md {
+  font-size: 24px;
+}
+
+.icon-lg {
+  font-size: 32px;
+}
+
+.icon-xl {
+  font-size: 48px;
+}
+
+/* Specific Icons */
+.icon-store::before { content: '\e8d1'; }          /* Store/Shop */
+.icon-warehouse::before { content: '\e8b8'; }      /* Warehouse */
+.icon-inventory::before { content: '\e85d'; }      /* Inventory/List */
+.icon-add::before { content: '\e145'; }            /* Add/Plus */
+.icon-remove::before { content: '\e15b'; }         /* Remove/Minus */
+.icon-transfer::before { content: '\e5d4'; }       /* Transfer/Exchange */
+.icon-adjust::before { content: '\e3c9'; }         /* Adjust/Edit */
+.icon-search::before { content: '\e8b6'; }         /* Search */
+.icon-clear::before { content: '\e5cd'; }          /* Clear/Close */
+.icon-refresh::before { content: '\e5d5'; }        /* Refresh/Reload */
+.icon-check::before { content: '\e5ca'; }          /* Check/Success */
+.icon-error::before { content: '\e000'; }          /* Error */
+.icon-warning::before { content: '\e002'; }        /* Warning */
+.icon-info::before { content: '\e88e'; }           /* Info */
+.icon-user::before { content: '\e7fd'; }           /* User/Person */
+.icon-notes::before { content: '\e22e'; }          /* Notes/Description */
+.icon-calendar::before { content: '\e878'; }       /* Calendar/Date */
+.icon-time::before { content: '\e430'; }           /* Time */
+.icon-location::before { content: '\e0c8'; }       /* Location */
+.icon-connection::before { content: '\e86f'; }     /* Connection/Link */
+.icon-download::before { content: '\e2c4'; }       /* Download */
+.icon-upload::before { content: '\e2c6'; }         /* Upload */
+.icon-export::before { content: '\e0c3'; }         /* Export */
+.icon-import::before { content: '\e0c8'; }         /* Import */
+.icon-settings::before { content: '\e8b8'; }       /* Settings */
+.icon-help::before { content: '\e887'; }           /* Help */
+.icon-menu::before { content: '\e5d2'; }           /* Menu */
+.icon-arrow-up::before { content: '\e5c7'; }       /* Arrow Up */
+.icon-arrow-down::before { content: '\e5c5'; }     /* Arrow Down */
+.icon-arrow-left::before { content: '\e5c4'; }     /* Arrow Left */
+.icon-arrow-right::before { content: '\e5c8'; }    /* Arrow Right */
+.icon-chevron-up::before { content: '\e5ce'; }     /* Chevron Up */
+.icon-chevron-down::before { content: '\e5cf'; }   /* Chevron Down */
+.icon-chevron-left::before { content: '\e5cb'; }   /* Chevron Left */
+.icon-chevron-right::before { content: '\e5cc'; }  /* Chevron Right */
+.icon-home::before { content: '\e88a'; }           /* Home */
+.icon-dashboard::before { content: '\e871'; }      /* Dashboard */
+.icon-chart::before { content: '\e24b'; }          /* Chart/Analytics */
+.icon-report::before { content: '\e871'; }         /* Report */
+.icon-filter::before { content: '\e3d3'; }         /* Filter */
+.icon-sort::before { content: '\e164'; }           /* Sort */
+.icon-view::before { content: '\e8f4'; }           /* View */
+.icon-edit::before { content: '\e3c9'; }           /* Edit */
+.icon-delete::before { content: '\e872'; }         /* Delete */
+.icon-save::before { content: '\e161'; }           /* Save */
+.icon-cancel::before { content: '\e5cd'; }         /* Cancel */
+.icon-confirm::before { content: '\e876'; }        /* Confirm */
+.icon-back::before { content: '\e5c4'; }           /* Back */
+.icon-forward::before { content: '\e5c8'; }        /* Forward */
+.icon-print::before { content: '\e8ad'; }          /* Print */
+.icon-email::before { content: '\e0e1'; }          /* Email */
+.icon-phone::before { content: '\e0cd'; }          /* Phone */
+.icon-notification::before { content: '\e7f4'; }   /* Notification */
+.icon-bell::before { content: '\e7f4'; }           /* Bell */
+.icon-star::before { content: '\e838'; }           /* Star */
+.icon-heart::before { content: '\e87d'; }          /* Heart */
+.icon-bookmark::before { content: '\e866'; }       /* Bookmark */
+.icon-share::before { content: '\e80d'; }          /* Share */
+.icon-copy::before { content: '\e14d'; }           /* Copy */
+.icon-paste::before { content: '\e77f'; }          /* Paste */
+.icon-cut::before { content: '\e14e'; }            /* Cut */
+.icon-undo::before { content: '\e166'; }           /* Undo */
+.icon-redo::before { content: '\e15a'; }           /* Redo */
+.icon-zoom-in::before { content: '\e8ff'; }        /* Zoom In */
+.icon-zoom-out::before { content: '\e900'; }       /* Zoom Out */
+.icon-fullscreen::before { content: '\e5d0'; }     /* Fullscreen */
+.icon-exit-fullscreen::before { content: '\e5d1'; } /* Exit Fullscreen */
+.icon-lock::before { content: '\e897'; }           /* Lock */
+.icon-unlock::before { content: '\e898'; }         /* Unlock */
+.icon-key::before { content: '\e73c'; }            /* Key */
+.icon-shield::before { content: '\e9e4'; }         /* Shield */
+.icon-security::before { content: '\e32a'; }       /* Security */
+.icon-privacy::before { content: '\e32a'; }        /* Privacy */
+.icon-verified::before { content: '\e6e1'; }       /* Verified */
+.icon-pending::before { content: '\e6f5'; }        /* Pending */
+.icon-processing::before { content: '\e6f5'; }     /* Processing */
+.icon-completed::before { content: '\e876'; }      /* Completed */
+.icon-failed::before { content: '\e000'; }         /* Failed */
+.icon-cancelled::before { content: '\e5cd'; }      /* Cancelled */
+.icon-scheduled::before { content: '\e878'; }      /* Scheduled */
+.icon-expired::before { content: '\e6f5'; }        /* Expired */
+.icon-active::before { content: '\e5ca'; }         /* Active */
+.icon-inactive::before { content: '\e5cd'; }       /* Inactive */
+.icon-online::before { content: '\e5ca'; }         /* Online */
+.icon-offline::before { content: '\e000'; }        /* Offline */
+.icon-sync::before { content: '\e627'; }           /* Sync */
+.icon-update::before { content: '\e923'; }         /* Update */
+.icon-version::before { content: '\e923'; }        /* Version */
+.icon-history::before { content: '\e889'; }        /* History */
+.icon-log::before { content: '\e889'; }            /* Log */
+.icon-audit::before { content: '\e889'; }          /* Audit */
+.icon-tracking::before { content: '\e0e2'; }       /* Tracking */
+.icon-monitoring::before { content: '\e0e2'; }     /* Monitoring */
+.icon-alert::before { content: '\e002'; }          /* Alert */
+.icon-critical::before { content: '\e000'; }       /* Critical */
+.icon-low::before { content: '\e88e'; }            /* Low Priority */
+.icon-medium::before { content: '\e002'; }         /* Medium Priority */
+.icon-high::before { content: '\e000'; }           /* High Priority */
+.icon-urgent::before { content: '\e000'; }         /* Urgent */
+.icon-normal::before { content: '\e88e'; }         /* Normal Priority */
+
+/* Icon with Text */
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.icon-text .icon {
+  flex-shrink: 0;
+}
+
+/* Icon Button */
+.btn-icon .icon {
+  font-size: 18px;
+}
+
+.btn-sm .icon {
+  font-size: 14px;
+}
+
+.btn-lg .icon {
+  font-size: 20px;
+}
+
+/* Icon Colors */
+.icon-primary { color: var(--color-primary); }
+.icon-secondary { color: var(--color-secondary); }
+.icon-success { color: var(--color-success); }
+.icon-error { color: var(--color-error); }
+.icon-warning { color: var(--color-warning); }
+.icon-info { color: var(--color-info); }
+.icon-white { color: var(--color-white); }
+.icon-gray { color: var(--color-gray-500); }
+
+/* Icon Backgrounds */
+.icon-bg-primary { background-color: var(--color-primary); color: var(--color-white); }
+.icon-bg-success { background-color: var(--color-success); color: var(--color-white); }
+.icon-bg-error { background-color: var(--color-error); color: var(--color-white); }
+.icon-bg-warning { background-color: var(--color-warning); color: var(--color-white); }
+.icon-bg-info { background-color: var(--color-info); color: var(--color-white); }
+
+/* Icon Spacing */
+.icon-margin-right { margin-right: var(--spacing-xs); }
+.icon-margin-left { margin-left: var(--spacing-xs); }
+.icon-margin-top { margin-top: var(--spacing-xs); }
+.icon-margin-bottom { margin-bottom: var(--spacing-xs); }
+
+/* Icon Alignment */
+.icon-align-top { vertical-align: top; }
+.icon-align-middle { vertical-align: middle; }
+.icon-align-bottom { vertical-align: bottom; }
+.icon-align-text-top { vertical-align: text-top; }
+.icon-align-text-bottom { vertical-align: text-bottom; }
+
+/* Icon Rotation */
+.icon-rotate-90 { transform: rotate(90deg); }
+.icon-rotate-180 { transform: rotate(180deg); }
+.icon-rotate-270 { transform: rotate(270deg); }
+
+/* Icon Flip */
+.icon-flip-horizontal { transform: scaleX(-1); }
+.icon-flip-vertical { transform: scaleY(-1); }
+
+/* Icon Animation */
+.icon-spin {
+  animation: icon-spin 2s linear infinite;
+}
+
+@keyframes icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.icon-pulse {
+  animation: icon-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes icon-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+.icon-bounce {
+  animation: icon-bounce 1s infinite;
+}
+
+@keyframes icon-bounce {
+  0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+  40%, 43% { transform: translate3d(0,-8px,0); }
+  70% { transform: translate3d(0,-4px,0); }
+  90% { transform: translate3d(0,-2px,0); }
+}
+
+/* Icon States */
+.icon-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-loading {
+  opacity: 0.7;
+}
+
+.icon-selected {
+  color: var(--color-primary);
+}
+
+.icon-hover:hover {
+  color: var(--color-primary);
+  transition: color var(--transition-fast);
+}
+
+/* Responsive Icons */
+@media (max-width: 768px) {
+  .icon-md {
+    font-size: 20px;
+  }
+  
+  .icon-lg {
+    font-size: 28px;
+  }
+  
+  .icon-xl {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .icon-md {
+    font-size: 18px;
+  }
+  
+  .icon-lg {
+    font-size: 24px;
+  }
+  
+  .icon-xl {
+    font-size: 32px;
+  }
+}

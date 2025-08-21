@@ -4,6 +4,7 @@ var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 var logSheet = ss.getSheetByName("Inventory Log");
 var snapshotSheet = ss.getSheetByName("Inventory Snapshot");
 var salesSnapshotSheet = ss.getSheetByName("Sales Snapshot");
+var productMasterSheet = ss.getSheetByName("Product Master");
 
 // ---------------------------
 // Global log collection
@@ -34,6 +35,7 @@ function doGet(e) {
   if (action === "getInventorySnapshot") return getInventorySnapshot();
   if (action === "addInventoryLog") return addInventoryLog(e);
   if (action === "testSheets") return testSheetConnections();
+  if (action === "getProducts") return getProducts();
   if (action === "getLogs") return outputJSON({status:"success", logs: getLogs()});
   if (action === "clearLogs") {
     clearLogs();
@@ -419,6 +421,55 @@ function updateSalesSnapshot(latestEntries){
       salesSnapshotSheet.appendRow([sku,sku,rec.total,rec.last7,rec.last30,rec.lastSold,new Date()]);
     }
   });
+}
+
+// ---------------------------
+// Get Products from Product Master
+// ---------------------------
+function getProducts() {
+  if (!productMasterSheet) return outputJSON({status:"error", message:"Product Master sheet not found"});
+  
+  try {
+    var data = productMasterSheet.getDataRange().getValues();
+    var headers = data[0];
+    var products = data.slice(1);
+    
+    // Find SKU column index
+    var skuIndex = headers.indexOf("SKU");
+    var nameIndex = headers.indexOf("Product Name");
+    var variationIndex = headers.indexOf("Variation Name");
+    
+    if (skuIndex === -1) {
+      return outputJSON({status:"error", message:"SKU column not found in Product Master sheet"});
+    }
+    
+    var productList = products.map(function(row) {
+      var sku = row[skuIndex] || "";
+      var name = nameIndex !== -1 ? (row[nameIndex] || "") : "";
+      var variation = variationIndex !== -1 ? (row[variationIndex] || "") : "";
+      
+      return {
+        sku: sku,
+        name: name,
+        variation: variation,
+        displayName: variation ? name + " - " + variation : name
+      };
+    }).filter(function(product) {
+      return product.sku && product.sku.trim() !== ""; // Only return products with valid SKUs
+    });
+    
+    addLog("Retrieved " + productList.length + " products from Product Master sheet");
+    
+    return outputJSON({
+      status: "success", 
+      data: productList,
+      count: productList.length
+    });
+    
+  } catch (error) {
+    addLog("Error getting products: " + error.toString());
+    return outputJSON({status:"error", message:"Failed to retrieve products: " + error.toString()});
+  }
 }
 
 // ---------------------------

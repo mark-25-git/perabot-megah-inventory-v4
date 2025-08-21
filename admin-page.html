@@ -1,514 +1,1939 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Admin - Perabot Megah</title>
-    <style>
-        /* Reset and base styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f5f5f5;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* Header */
-        .header {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-
-        /* Operation modes */
-        .operation-modes {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .mode-tab {
-            padding: 12px 24px;
-            background: #ecf0f1;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .mode-tab.active {
-            background: #3498db;
-            color: white;
-        }
-
-        .mode-tab:hover:not(.active) {
-            background: #bdc3c7;
-        }
-
-        /* Form sections */
-        .form-section {
-            background: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .form-section.active {
-            display: block;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #ecf0f1;
-        }
-
-        /* Form styling */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #34495e;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ecf0f1;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3498db;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .form-row .form-group {
-            margin-bottom: 0;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-        }
-
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-
-        /* Status messages */
-        .status-message {
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-            font-weight: 500;
-        }
-
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        /* Recent activity */
-        .recent-activity {
-            background: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .activity-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .activity-table th,
-        .activity-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ecf0f1;
-        }
-
-        .activity-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .mode-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .mode-adjustment {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-
-        .mode-transfer {
-            background: #e3f2fd;
-            color: #1565c0;
-        }
-
-        .mode-receiving {
-            background: #fff3e0;
-            color: #ef6c00;
-        }
-
-        .mode-sale {
-            background: #fce4ec;
-            color: #c2185b;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .operation-modes {
-                flex-direction: column;
-            }
-            
-            .mode-tab {
-                text-align: center;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perabot Megah - Admin Panel</title>
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>📦 Inventory Management System</h1>
-            <p>Admin Control Center - Perabot Megah</p>
+  <div class="container">
+    <header class="page-header">
+      <h1 class="page-title">
+        <i class="icon icon-inventory icon-margin-right"></i>
+        Perabot Megah - Admin Panel
+      </h1>
+    </header>
+    
+    <main class="main-content">
+      <!-- Connection Status -->
+      <div class="status-section">
+        <h3>
+          <i class="icon icon-connection icon-margin-right"></i>
+          Connection Status
+        </h3>
+        <p>
+          <span class="status-indicator" id="connectionStatus"></span>
+          <span id="connectionText">Testing connection...</span>
+        </p>
+        <button class="btn btn-primary" onclick="testConnection()">
+          <i class="icon icon-refresh icon-margin-right"></i>
+          Test Connection
+        </button>
+      </div>
+
+      <!-- Receiving Form -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-add icon-margin-right"></i>
+            Receiving - Add New Stock
+          </h3>
+          <div class="form-section-actions">
+            <button class="btn btn-secondary" onclick="loadProducts()">
+              <i class="icon icon-refresh icon-margin-right"></i>
+              Refresh Product List
+            </button>
+          </div>
         </div>
-
-        <!-- Operation Mode Tabs -->
-        <div class="operation-modes">
-            <button class="mode-tab active" data-mode="adjustment">⚖️ Adjustment</button>
-            <button class="mode-tab" data-mode="transfer">🔄 Transfer</button>
-            <button class="mode-tab" data-mode="receiving">📦 Receiving</button>
-            <button class="mode-tab" data-mode="sale">💰 Sale</button>
-        </div>
-
-        <!-- Adjustment Mode Form -->
-        <div id="adjustment-section" class="form-section active">
-            <h2 class="section-title">⚖️ Inventory Adjustment</h2>
-            <p style="margin-bottom: 20px; color: #7f8c8d;">
-                Set the new total inventory level for a specific location. The system will automatically calculate the increase or decrease needed. Use this for stock counts, damage adjustments, or quality control corrections.
-            </p>
-            
-            <form id="adjustment-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="adjustment-sku">SKU *</label>
-                        <input type="text" id="adjustment-sku" name="sku" required placeholder="Enter product SKU">
-                    </div>
-                    <div class="form-group">
-                        <label for="adjustment-quantity">New Total Quantity *</label>
-                        <input type="number" id="adjustment-quantity" name="quantity" required min="0" placeholder="Enter new total stock level">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="adjustment-location">Location *</label>
-                    <select id="adjustment-location" name="source" required>
-                        <option value="">Select location</option>
-                        <option value="Shop">Shop</option>
-                        <option value="Warehouse">Warehouse</option>
-                    </select>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="adjustment-user">User *</label>
-                        <input type="text" id="adjustment-user" name="user" required placeholder="Enter your name">
-                    </div>
-                    <div class="form-group">
-                        <label for="adjustment-notes">Notes</label>
-                        <input type="text" id="adjustment-notes" name="notes" placeholder="Reason for adjustment">
-                    </div>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">Submit Adjustment</button>
-                    <button type="reset" class="btn btn-secondary">Reset Form</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Transfer Mode Form (Placeholder) -->
-        <div id="transfer-section" class="form-section">
-            <h2 class="section-title">🔄 Stock Transfer</h2>
-            <p style="color: #7f8c8d;">Move stock between Warehouse and Shop locations.</p>
-            <p style="color: #95a5a6; font-style: italic;">Coming soon...</p>
-        </div>
-
-        <!-- Receiving Mode Form (Placeholder) -->
-        <div id="receiving-section" class="form-section">
-            <h2 class="section-title">📦 Stock Receiving</h2>
-            <p style="color: #7f8c8d;">Record goods received from suppliers.</p>
-            <p style="color: #95a5a6; font-style: italic;">Coming soon...</p>
-        </div>
-
-        <!-- Sale Mode Form (Placeholder) -->
-        <div id="sale-section" class="form-section">
-            <h2 class="section-title">💰 Sales Recording</h2>
-            <p style="color: #7f8c8d;">Record sales from Shop location.</p>
-            <p style="color: #95a5a6; font-style: italic;">Coming soon...</p>
-        </div>
-
-        <!-- Status Messages -->
-        <div id="status-message" style="display: none;"></div>
-
-        <!-- Recent Activity -->
-        <div class="recent-activity">
-            <h2 class="section-title">📋 Recent Activity</h2>
-            <p style="margin-bottom: 15px; color: #7f8c8d;">
-                Last 10 operations performed. Click refresh to see latest updates.
-            </p>
-            <button id="refresh-activity" class="btn btn-secondary">🔄 Refresh Activity</button>
-            
-            <table class="activity-table" id="activity-table">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>SKU</th>
-                        <th>Operation</th>
-                        <th>Quantity</th>
-                        <th>Location</th>
-                        <th>User</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: #95a5a6;">No recent activity</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-        // Configuration
-        const API_BASE = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
+        <p>Use this form to record new inventory received from suppliers.</p>
         
-        // State management
-        let currentMode = 'adjustment';
-        let recentActivity = [];
+        <form id="receivingForm">
+          <div class="form-group">
+            <label class="form-label" for="sku">Select Product:</label>
+            <div class="search-container">
+              <input type="text" id="skuInput" name="sku" class="form-input search-input" placeholder="Type to search products..." required>
+              <button type="button" class="search-clear" onclick="clearSearch()">
+                <i class="icon icon-clear"></i>
+              </button>
+              <div id="searchResults" class="search-results"></div>
+            </div>
+            <div id="productCount" class="search-info"></div>
+            <div id="searchTips" class="search-tips">
+              <i class="icon icon-info icon-margin-right"></i>
+              <strong>Search Tips:</strong> Type SKU, product name, or partial text. Only results with score ≥90 are shown. Use ↑↓ arrows to navigate, Enter to select, Esc to close.
+            </div>
+            <small class="form-help">Type to search products from Product Master sheet</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="quantity">Quantity Received:</label>
+            <input type="number" id="quantity" name="quantity" class="form-input" placeholder="Enter quantity" min="1" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="destination">Destination Location:</label>
+            <div class="location-buttons">
+              <button type="button" id="shopBtn" class="location-btn" data-location="Shop">
+                <i class="icon icon-store icon-margin-right"></i>
+                Shop
+              </button>
+              <button type="button" id="warehouseBtn" class="location-btn" data-location="Warehouse">
+                <i class="icon icon-warehouse icon-margin-right"></i>
+                Warehouse
+              </button>
+            </div>
+            <input type="hidden" id="destination" name="destination" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="user">User Name:</label>
+            <input type="text" id="user" name="user" class="form-input" placeholder="Enter your name" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="notes">Notes (Optional):</label>
+            <input type="text" id="notes" name="notes" class="form-input" placeholder="Supplier info, quality notes, etc.">
+          </div>
+          
+          <div class="btn-group">
+            <button type="submit" id="submitBtn" class="btn btn-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              Submit Receiving
+            </button>
+            <button type="button" class="btn btn-outline" onclick="clearReceivingForm()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Form
+            </button>
+          </div>
+        </form>
+      </div>
 
-        // DOM elements
-        const modeTabs = document.querySelectorAll('.mode-tab');
-        const formSections = document.querySelectorAll('.form-section');
-        const adjustmentForm = document.getElementById('adjustment-form');
-        const statusMessage = document.getElementById('status-message');
-        const refreshActivityBtn = document.getElementById('refresh-activity');
-        const activityTable = document.getElementById('activity-table');
+      <!-- Transfer Form -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-transfer icon-margin-right"></i>
+            Transfer - Move Stock Between Locations
+          </h3>
+        </div>
+        <p>Use this form to move inventory between Shop and Warehouse locations.</p>
+        
+        <form id="transferForm">
+          <div class="form-group">
+            <label class="form-label" for="transferSku">Select Product:</label>
+            <div class="search-container">
+              <input type="text" id="transferSkuInput" name="transferSku" class="form-input search-input" placeholder="Type to search products..." required>
+              <button type="button" class="search-clear" onclick="clearTransferSearch()">
+                <i class="icon icon-clear"></i>
+              </button>
+              <div id="transferSearchResults" class="search-results"></div>
+            </div>
+            <div id="transferProductCount" class="search-info"></div>
+            <small class="form-help">Type to search products from Product Master sheet</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="transferQuantity">Quantity to Transfer:</label>
+            <input type="number" id="transferQuantity" name="transferQuantity" class="form-input" placeholder="Enter quantity" min="1" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="transferLocation">Transfer Direction:</label>
+            <div class="location-buttons">
+              <button type="button" id="transferShopBtn" class="location-btn" data-location="Shop">
+                <i class="icon icon-store icon-margin-right"></i>
+                Shop → Warehouse
+              </button>
+              <button type="button" id="transferWarehouseBtn" class="location-btn" data-location="Warehouse">
+                <i class="icon icon-warehouse icon-margin-right"></i>
+                Warehouse → Shop
+              </button>
+            </div>
+            <input type="hidden" id="transferSource" name="transferSource" required>
+            <input type="hidden" id="transferDestination" name="transferDestination" required>
+            <div id="transferDirection" class="form-help"></div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="transferUser">User Name:</label>
+            <input type="text" id="transferUser" name="transferUser" class="form-input" placeholder="Enter your name" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="transferNotes">Notes (Optional):</label>
+            <input type="text" id="transferNotes" name="transferNotes" class="form-input" placeholder="Reason for transfer, special handling, etc.">
+          </div>
+          
+          <div class="btn-group">
+            <button type="submit" id="transferSubmitBtn" class="btn btn-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              Submit Transfer
+            </button>
+            <button type="button" class="btn btn-outline" onclick="clearTransferForm()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Form
+            </button>
+          </div>
+        </form>
+      </div>
 
-        // Initialize the application
-        function init() {
-            setupEventListeners();
-            loadRecentActivity();
+      <!-- Adjustment Form -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-adjust icon-margin-right"></i>
+            Adjustment - Set Exact Stock Levels
+          </h3>
+        </div>
+        <p>Use this form to correct inventory levels, set exact quantities, or handle stock corrections (including negative adjustments).</p>
+        
+        <form id="adjustmentForm">
+          <div class="form-group">
+            <label class="form-label" for="adjustmentSku">Select Product:</label>
+            <div class="search-container">
+              <input type="text" id="adjustmentSkuInput" name="adjustmentSku" class="form-input search-input" placeholder="Type to search products..." required>
+              <button type="button" class="search-clear" onclick="clearAdjustmentSearch()">
+                <i class="icon icon-clear"></i>
+              </button>
+              <div id="adjustmentSearchResults" class="search-results"></div>
+            </div>
+            <div id="adjustmentProductCount" class="search-info"></div>
+            <small class="form-help">Type to search products from Product Master sheet</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="adjustmentLocation">Location:</label>
+            <div class="location-buttons">
+              <button type="button" id="adjustmentShopBtn" class="location-btn" data-location="Shop">
+                <i class="icon icon-store icon-margin-right"></i>
+                Shop
+              </button>
+              <button type="button" id="adjustmentWarehouseBtn" class="location-btn" data-location="Warehouse">
+                <i class="icon icon-warehouse icon-margin-right"></i>
+                Warehouse
+              </button>
+            </div>
+            <input type="hidden" id="adjustmentLocation" name="adjustmentLocation" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="adjustmentQuantity">New Stock Level:</label>
+            <input type="number" id="adjustmentQuantity" name="adjustmentQuantity" class="form-input" placeholder="Enter exact quantity (can be negative)" required>
+            <small class="form-help">Enter the exact quantity you want to set. Use negative numbers for corrections.</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="adjustmentUser">User Name:</label>
+            <input type="text" id="adjustmentUser" name="adjustmentUser" class="form-input" placeholder="Enter your name" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="adjustmentNotes">Reason for Adjustment (Required):</label>
+            <input type="text" id="adjustmentNotes" name="adjustmentNotes" class="form-input" placeholder="Stock count, damage, loss, correction, etc." required>
+            <small class="form-help">Please provide a clear reason for this adjustment.</small>
+          </div>
+          
+          <div class="btn-group">
+            <button type="submit" id="adjustmentSubmitBtn" class="btn btn-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              Submit Adjustment
+            </button>
+            <button type="button" class="btn btn-outline" onclick="clearAdjustmentForm()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Form
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sales Form -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-remove icon-margin-right"></i>
+            Sales - Record Product Sales
+          </h3>
+        </div>
+        <p>Use this form to record product sales. This will reduce stock from Shop location and update both Inventory and Sales snapshots.</p>
+        
+        <form id="salesForm">
+          <div class="form-group">
+            <label class="form-label" for="salesSku">Select Product:</label>
+            <div class="search-container">
+              <input type="text" id="salesSkuInput" name="salesSku" class="form-input search-input" placeholder="Type to search products..." required>
+              <button type="button" class="search-clear" onclick="clearSalesSearch()">
+                <i class="icon icon-clear"></i>
+              </button>
+              <div id="salesSearchResults" class="search-results"></div>
+            </div>
+            <div id="salesProductCount" class="search-info"></div>
+            <small class="form-help">Type to search products from Product Master sheet</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="salesQuantity">Quantity Sold:</label>
+            <input type="number" id="salesQuantity" name="salesQuantity" class="form-input" placeholder="Enter quantity sold" min="1" required>
+            <small class="form-help">This will reduce stock from Shop location</small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="salesUser">User Name:</label>
+            <input type="text" id="salesUser" name="salesUser" class="form-input" placeholder="Enter your name" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="salesNotes">Sale Details (Optional):</label>
+            <input type="text" id="salesNotes" name="salesNotes" class="form-input" placeholder="Customer info, payment method, special notes, etc.">
+            <small class="form-help">Optional: Additional details about the sale</small>
+          </div>
+          
+          <div class="btn-group">
+            <button type="submit" id="salesSubmitBtn" class="btn btn-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              Submit Sale
+            </button>
+            <button type="button" class="btn btn-outline" onclick="clearSalesForm()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Form
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Results Display -->
+      <div id="receivingResult"></div>
+      
+      <!-- Quick Inventory Check -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-inventory icon-margin-right"></i>
+            Quick Inventory Check
+          </h3>
+          <div class="form-section-actions">
+            <button class="btn btn-primary" onclick="loadSnapshot()">
+              <i class="icon icon-refresh icon-margin-right"></i>
+              Refresh Inventory
+            </button>
+            <button class="btn btn-outline" onclick="clearSnapshot()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Display
+            </button>
+          </div>
+        </div>
+        <div id="snapshotTable"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Configuration
+    const apiBase = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      testConnection();
+      setupReceivingForm();
+      loadProducts();
+      setupProductSearch();
+      setupLocationButtons();
+      setupTransferForm(); // Initialize transfer form
+      setupTransferProductSearch(); // Initialize transfer product search
+      setupTransferLocationButtons(); // Initialize transfer location buttons
+      setupAdjustmentForm(); // Initialize adjustment form
+      setupAdjustmentProductSearch(); // Initialize adjustment product search
+      setupAdjustmentLocationButtons(); // Initialize adjustment location buttons
+      setupSalesForm(); // Initialize sales form
+      setupSalesProductSearch(); // Initialize sales product search
+    });
+
+    // ====== Connection Testing ======
+    function testConnection() {
+      const statusIndicator = document.getElementById('connectionStatus');
+      const statusText = document.getElementById('connectionText');
+      
+      statusIndicator.className = 'status-indicator';
+      statusText.textContent = 'Testing connection...';
+      
+      fetch(apiBase + "?action=getInventorySnapshot")
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === "success") {
+            statusIndicator.className = 'status-indicator status-online';
+            statusText.textContent = 'Connected successfully! Web app is responding.';
+          } else {
+            throw new Error(data.message || 'Unknown error from web app');
+          }
+        })
+        .catch(error => {
+          statusIndicator.className = 'status-indicator status-offline';
+          statusText.textContent = 'Connection failed: ' + error.message;
+          console.error('Connection test failed:', error);
+        });
+    }
+
+    // Global variable to store all products
+    let allProducts = [];
+
+    // ====== Products Loading ======
+    function loadProducts() {
+      const skuInput = document.getElementById('skuInput');
+      const productCountDiv = document.getElementById('productCount');
+      
+      skuInput.placeholder = 'Loading products...';
+      skuInput.disabled = true;
+      
+      fetch(apiBase + "?action=getProducts")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success" && data.data && data.data.length > 0) {
+            allProducts = data.data; // Store all products globally
+            skuInput.placeholder = `Type to search ${allProducts.length} products...`;
+            productCountDiv.textContent = `Loaded ${allProducts.length} products`;
+          } else {
+            skuInput.placeholder = 'No products available';
+            productCountDiv.textContent = 'No products available';
+            console.error('Failed to load products:', data.message || 'Unknown error');
+          }
+        })
+        .catch(error => {
+          skuInput.placeholder = 'Error loading products';
+          productCountDiv.textContent = 'Error loading products';
+          console.error('Failed to load products:', error);
+        })
+        .finally(() => {
+          skuInput.disabled = false;
+        });
+    }
+
+    function showSearchResults(products, searchTerm, minScore = 0, totalMatches = 0, totalProducts = 0) {
+      const searchResults = document.getElementById('searchResults');
+      const productCountDiv = document.getElementById('productCount');
+      
+      if (!products || products.length === 0) {
+        searchResults.innerHTML = `
+          <div class="search-results-empty">
+            <div class="mb-2">No high-relevance products found</div>
+            <div class="text-xs text-tertiary">
+              Minimum score: ${minScore}<br>
+              ${totalMatches > 0 ? `${totalMatches} products matched but were below threshold<br>` : ''}
+              Try a more specific search term
+            </div>
+          </div>
+        `;
+        productCountDiv.textContent = totalMatches > 0 
+          ? `No results above minimum score ${minScore} (${totalMatches} low-relevance matches filtered out)`
+          : `No results above minimum score ${minScore}`;
+      } else {
+        searchResults.innerHTML = '';
+        
+        products.forEach(product => {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'search-result-item';
+          
+          // Highlight matched parts in SKU and name
+          const highlightedSku = highlightMatches(product.sku, searchTerm);
+          const highlightedName = highlightMatches(product.displayName, searchTerm);
+          
+          // Color-code the relevance score
+          let scoreColor = 'var(--color-text-tertiary)';
+          if (product.score >= 80) scoreColor = 'var(--color-success)'; // Green for high relevance
+          else if (product.score >= 50) scoreColor = 'var(--color-warning)'; // Orange for medium relevance
+          else if (product.score >= 20) scoreColor = 'var(--color-info)'; // Blue for low relevance
+          
+          resultItem.innerHTML = `
+            <div class="font-semibold">${highlightedSku}</div>
+            <div class="text-sm text-secondary">${highlightedName}</div>
+            <div class="text-xs font-medium" style="color: ${scoreColor}; margin-top: var(--spacing-xs);">
+              Relevance: ${product.score} ${product.score >= 80 ? '⭐' : product.score >= 50 ? '✨' : '•'}
+            </div>
+          `;
+          
+          resultItem.addEventListener('click', () => {
+            selectProduct(product);
+          });
+          
+          resultItem.addEventListener('mouseenter', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-tertiary)';
+          });
+          
+          resultItem.addEventListener('mouseleave', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-primary)';
+          });
+          
+          searchResults.appendChild(resultItem);
+        });
+        
+        // Update product count display with score information
+        if (products === allProducts) {
+          productCountDiv.textContent = `Showing all ${products.length} products`;
+        } else {
+          const filteredOut = totalMatches - products.length;
+          const filterInfo = filteredOut > 0 ? ` (${filteredOut} low-relevance results filtered out)` : '';
+          productCountDiv.textContent = `Showing ${products.length} high-relevance results (min score: ${minScore})${filterInfo}`;
         }
+      }
+      
+      searchResults.style.display = 'block';
+    }
 
-        // Setup event listeners
-        function setupEventListeners() {
-            // Mode tab switching
-            modeTabs.forEach(tab => {
-                tab.addEventListener('click', () => switchMode(tab.dataset.mode));
-            });
+    function highlightMatches(text, searchTerm) {
+      if (!searchTerm || !text) return text;
+      
+      const searchLower = searchTerm.toLowerCase();
+      const textLower = text.toLowerCase();
+      
+      // Find all matches (case-insensitive)
+      const matches = [];
+      let index = 0;
+      while ((index = textLower.indexOf(searchLower, index)) !== -1) {
+        matches.push({ start: index, end: index + searchLower.length });
+        index += 1;
+      }
+      
+      // If no exact matches, try fuzzy highlighting
+      if (matches.length === 0) {
+        return highlightFuzzyMatches(text, searchTerm);
+      }
+      
+      // Highlight exact matches
+      let highlightedText = '';
+      let lastEnd = 0;
+      
+      matches.forEach(match => {
+        highlightedText += text.substring(lastEnd, match.start);
+        highlightedText += `<span style="background-color: var(--color-warning-light); font-weight: bold;">${text.substring(match.start, match.end)}</span>`;
+        lastEnd = match.end;
+      });
+      
+      highlightedText += text.substring(lastEnd);
+      return highlightedText;
+    }
 
-            // Form submission
-            adjustmentForm.addEventListener('submit', handleAdjustmentSubmit);
-
-            // Refresh activity
-            refreshActivityBtn.addEventListener('click', loadRecentActivity);
+    function highlightFuzzyMatches(text, searchTerm) {
+      if (!searchTerm || !text) return text;
+      
+      const searchLower = searchTerm.toLowerCase();
+      const textLower = text.toLowerCase();
+      
+      let highlightedText = '';
+      let searchIndex = 0;
+      
+      for (let i = 0; i < text.length && searchIndex < searchTerm.length; i++) {
+        if (textLower[i] === searchLower[searchIndex]) {
+          highlightedText += `<span style="background-color: var(--color-info-light); font-weight: bold;">${text[i]}</span>`;
+          searchIndex++;
+        } else {
+          highlightedText += text[i];
         }
+      }
+      
+      highlightedText += text.substring(highlightedText.replace(/<[^>]*>/g, '').length);
+      return highlightedText;
+    }
 
-        // Switch between operation modes
-        function switchMode(mode) {
-            // Update active tab
-            modeTabs.forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.mode === mode);
-            });
+    function selectProduct(product) {
+      const skuInput = document.getElementById('skuInput');
+      const searchResults = document.getElementById('searchResults');
+      
+      skuInput.value = product.sku;
+      searchResults.style.display = 'none';
+      
+      console.log(`Selected product: ${product.sku} - ${product.displayName}`);
+    }
 
-            // Update active form section
-            formSections.forEach(section => {
-                section.classList.toggle('active', section.id === `${mode}-section`);
-            });
+    function selectTransferProduct(product) {
+      const transferSkuInput = document.getElementById('transferSkuInput');
+      const transferSearchResults = document.getElementById('transferSearchResults');
+      
+      transferSkuInput.value = product.sku;
+      transferSearchResults.style.display = 'none';
+      
+      console.log(`Selected transfer product: ${product.sku} - ${product.displayName}`);
+    }
 
-            currentMode = mode;
-            hideStatusMessage();
+    function clearSearch() {
+      const skuInput = document.getElementById('skuInput');
+      skuInput.value = '';
+      hideSearchResults();
+    }
+
+    // ====== Location Button Functionality ======
+    function setupLocationButtons() {
+      const shopBtn = document.getElementById('shopBtn');
+      const warehouseBtn = document.getElementById('warehouseBtn');
+      const destinationInput = document.getElementById('destination');
+      
+      // Add click event listeners
+      shopBtn.addEventListener('click', () => selectLocation('Shop', shopBtn, warehouseBtn));
+      warehouseBtn.addEventListener('click', () => selectLocation('Warehouse', warehouseBtn, shopBtn));
+      
+      // Set default selection (Shop)
+      selectLocation('Shop', shopBtn, warehouseBtn);
+    }
+
+    function setupTransferLocationButtons() {
+      const transferShopBtn = document.getElementById('transferShopBtn');
+      const transferWarehouseBtn = document.getElementById('transferWarehouseBtn');
+      const transferSourceInput = document.getElementById('transferSource');
+      const transferDestinationInput = document.getElementById('transferDestination');
+      const transferDirectionDiv = document.getElementById('transferDirection');
+      
+      // Add click event listeners for source location
+      transferShopBtn.addEventListener('click', () => {
+        selectTransferSourceLocation('Shop', transferShopBtn, transferWarehouseBtn);
+      });
+      transferWarehouseBtn.addEventListener('click', () => {
+        selectTransferSourceLocation('Warehouse', transferWarehouseBtn, transferShopBtn);
+      });
+      
+      // Set default selection (Shop → Warehouse)
+      selectTransferSourceLocation('Shop', transferShopBtn, transferWarehouseBtn);
+    }
+
+    function selectLocation(location, selectedBtn, otherBtn) {
+      const destinationInput = document.getElementById('destination');
+      
+      // Update hidden input value
+      destinationInput.value = location;
+      
+      // Update button styles
+      selectedBtn.classList.add('active');
+      otherBtn.classList.remove('active');
+      
+      console.log(`Selected destination: ${location}`);
+    }
+
+    function selectTransferSourceLocation(location, selectedBtn, otherBtn) {
+      const transferSourceInput = document.getElementById('transferSource');
+      const transferDestinationInput = document.getElementById('transferDestination');
+      const transferDirectionDiv = document.getElementById('transferDirection');
+      
+      // Update hidden input values
+      transferSourceInput.value = location;
+      
+      // Automatically set destination to the opposite location
+      const destinationLocation = location === 'Shop' ? 'Warehouse' : 'Shop';
+      transferDestinationInput.value = destinationLocation;
+      
+      // Update direction display
+      transferDirectionDiv.textContent = `From: ${location} → To: ${destinationLocation}`;
+      
+      // Update button styles
+      selectedBtn.classList.add('active');
+      otherBtn.classList.remove('active');
+      
+      console.log(`Selected transfer: ${location} → ${destinationLocation}`);
+    }
+
+    function selectTransferDestLocation(location, selectedBtn, otherBtn) {
+      // This function is no longer needed since destination is auto-filled
+      // Keeping it for compatibility but it won't be called
+      console.log('selectTransferDestLocation called but not needed in simplified interface');
+    }
+
+    // ====== Product Search Functionality ======
+    function setupProductSearch() {
+      const skuInput = document.getElementById('skuInput');
+      
+      // Add event listener for search input
+      skuInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+          hideSearchResults();
+          return;
         }
-
-        // Handle adjustment form submission
-        async function handleAdjustmentSubmit(e) {
+        filterProducts(this.value);
+      });
+      
+      // Keyboard navigation
+      skuInput.addEventListener('keydown', function(e) {
+        const searchResults = document.getElementById('searchResults');
+        const visibleItems = searchResults.querySelectorAll('.search-result-item');
+        
+        if (visibleItems.length === 0) return;
+        
+        let currentIndex = -1;
+        visibleItems.forEach((item, index) => {
+          if (item.classList.contains('selected')) {
+            currentIndex = index;
+          }
+        });
+        
+        switch(e.key) {
+          case 'ArrowDown':
             e.preventDefault();
-            
-            const formData = new FormData(adjustmentForm);
-            const formDataObj = Object.fromEntries(formData.entries());
-            
-            // Add required parameters for adjustment mode
-            const params = new URLSearchParams({
-                action: 'adminOperation',
-                adminMode: 'Adjustment',
-                sku: formDataObj.sku,
-                quantity: formDataObj.quantity,
-                source: formDataObj.source,
-                destination: formDataObj.source, // For adjustment, source = destination
-                user: formDataObj.user,
-                notes: formDataObj.notes
-            });
-
-            try {
-                showStatusMessage('Processing adjustment...', 'info');
-                
-                const response = await fetch(`${API_BASE}?${params.toString()}`);
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    showStatusMessage(`✅ Adjustment successful! Transaction ID: ${result.transactionId}`, 'success');
-                    adjustmentForm.reset();
-                    loadRecentActivity(); // Refresh activity table
-                } else {
-                    showStatusMessage(`❌ Error: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                console.error('Adjustment error:', error);
-                showStatusMessage('❌ Network error. Please try again.', 'error');
+            if (currentIndex < visibleItems.length - 1) {
+              if (currentIndex >= 0) visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex + 1].classList.add('selected');
             }
-        }
-
-        // Load recent activity from the system
-        async function loadRecentActivity() {
-            try {
-                // For now, we'll show a placeholder since we need to implement
-                // a way to fetch recent activity from the Google Apps Script
-                showRecentActivityPlaceholder();
-            } catch (error) {
-                console.error('Error loading activity:', error);
-                showRecentActivityPlaceholder();
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            if (currentIndex > 0) {
+              visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex - 1].classList.add('selected');
             }
-        }
-
-        // Show placeholder for recent activity
-        function showRecentActivityPlaceholder() {
-            const tbody = activityTable.querySelector('tbody');
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #95a5a6;">
-                        Recent activity will appear here after operations are performed.<br>
-                        <small>Note: Activity tracking will be implemented in the next phase.</small>
-                    </td>
-                </tr>
-            `;
-        }
-
-        // Utility functions
-        function showStatusMessage(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message status-${type}`;
-            statusMessage.style.display = 'block';
-            
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(hideStatusMessage, 5000);
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (currentIndex >= 0) {
+              const selectedProduct = allProducts.find(p => 
+                p.sku === visibleItems[currentIndex].querySelector('div').textContent.replace(/<[^>]*>/g, '')
+              );
+              if (selectedProduct) selectProduct(selectedProduct);
             }
+            break;
+          case 'Escape':
+            hideSearchResults();
+            skuInput.blur();
+            break;
         }
-
-        function hideStatusMessage() {
-            statusMessage.style.display = 'none';
+      });
+      
+      // Hide search results when clicking outside
+      document.addEventListener('click', function(e) {
+        const searchContainer = document.getElementById('skuInput').parentElement;
+        if (!searchContainer.contains(e.target)) {
+          hideSearchResults();
         }
+      });
+      
+      // Show all products when input is focused and empty
+      skuInput.addEventListener('focus', function() {
+        if (this.value.trim() === '') {
+          showSearchResults(allProducts);
+        }
+      });
+    }
 
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+    function filterProducts(searchTerm) {
+      if (!searchTerm || searchTerm.trim() === '') {
+        hideSearchResults();
+        return;
+      }
+      
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Score each product based on fuzzy matching
+      const scoredProducts = allProducts.map(product => {
+        const skuLower = product.sku.toLowerCase();
+        const nameLower = product.displayName.toLowerCase();
+        
+        let score = 0;
+        let bestScore = 0;
+        
+        // Check SKU matching
+        const skuScore = calculateFuzzyScore(searchLower, skuLower);
+        score += skuScore * 2; // SKU gets higher weight
+        bestScore = Math.max(bestScore, skuScore);
+        
+        // Check product name matching
+        const nameScore = calculateFuzzyScore(searchLower, nameLower);
+        score += nameScore;
+        bestScore = Math.max(bestScore, nameScore);
+        
+        // Bonus for exact matches
+        if (skuLower === searchLower) score += 100;
+        if (nameLower === searchLower) score += 50;
+        
+        // Bonus for starts with
+        if (skuLower.startsWith(searchLower)) score += 30;
+        if (nameLower.startsWith(searchLower)) score += 20;
+        
+        // Bonus for contains
+        if (skuLower.includes(searchLower)) score += 10;
+        if (nameLower.includes(searchLower)) score += 5;
+        
+        return { ...product, score, bestScore };
+      });
+      
+      // Filter products with high relevance scores and sort by score
+      const minScore = 90; // Fixed high-quality threshold
+      const filteredProducts = scoredProducts
+        .filter(product => product.score >= minScore)
+        .sort((a, b) => b.score - a.score);
+      
+      // Get total count of products that matched (including low scores)
+      const totalMatches = scoredProducts.filter(product => product.score > 0).length;
+      
+      // Show all results above the threshold (no artificial limit)
+      showSearchResults(filteredProducts, searchTerm, minScore, totalMatches, scoredProducts.length);
+    }
+
+    function calculateFuzzyScore(searchTerm, targetText) {
+      if (!searchTerm || !targetText) return 0;
+      
+      const searchLen = searchTerm.length;
+      const targetLen = targetText.length;
+      
+      // Exact match gets highest score
+      if (searchTerm === targetText) return 100;
+      
+      // Starts with gets high score
+      if (targetText.startsWith(searchTerm)) return 80;
+      
+      // Contains gets medium score
+      if (targetText.includes(searchTerm)) return 60;
+      
+      // Fuzzy matching using character sequence
+      let score = 0;
+      let searchIndex = 0;
+      let consecutiveMatches = 0;
+      let lastMatchIndex = -1;
+      
+      for (let i = 0; i < targetLen && searchIndex < searchLen; i++) {
+        if (targetText[i].toLowerCase() === searchTerm[searchIndex].toLowerCase()) {
+          // Bonus for consecutive matches
+          if (lastMatchIndex === i - 1) {
+            consecutiveMatches++;
+            score += consecutiveMatches * 2;
+          } else {
+            consecutiveMatches = 1;
+          }
+          
+          // Bonus for early matches
+          score += (targetLen - i) / targetLen * 10;
+          
+          lastMatchIndex = i;
+          searchIndex++;
+        }
+      }
+      
+      // If we found all characters in sequence
+      if (searchIndex === searchLen) {
+        score += 40;
+        
+        // Bonus for shorter gaps between characters
+        const gaps = [];
+        let lastFound = -1;
+        for (let i = 0; i < targetLen; i++) {
+          if (targetText[i].toLowerCase() === searchTerm[searchIndex - 1].toLowerCase()) {
+            if (lastFound !== -1) {
+              gaps.push(i - lastFound);
+            }
+            lastFound = i;
+          }
+        }
+        
+        if (gaps.length > 0) {
+          const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+          score += Math.max(0, 20 - avgGap);
+        }
+      }
+      
+      // Penalty for very long target text
+      if (targetLen > searchLen * 3) {
+        score *= 0.8;
+      }
+      
+      return Math.round(score);
+    }
+
+    function hideSearchResults() {
+      const searchResults = document.getElementById('searchResults');
+      searchResults.style.display = 'none';
+    }
+
+    // ====== Receiving Form Setup ======
+    function setupReceivingForm() {
+      const form = document.getElementById('receivingForm');
+      form.addEventListener('submit', handleReceivingSubmit);
+    }
+
+    function handleReceivingSubmit(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = {
+        sku: formData.get('sku'),
+        quantity: parseInt(formData.get('quantity')),
+        mode: 'RECEIVING',
+        source: 'Supplier',
+        destination: formData.get('destination'),
+        user: formData.get('user'),
+        notes: formData.get('notes') || ''
+      };
+
+      submitReceiving(data);
+    }
+
+    function submitReceiving(data) {
+      const resultDiv = document.getElementById('receivingResult');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing receiving...</div>';
+      submitBtn.disabled = true;
+      
+      const params = new URLSearchParams({
+        action: 'addInventoryLog',
+        data: JSON.stringify([data])
+      });
+
+      fetch(apiBase + '?' + params.toString(), {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === 'success') {
+          resultDiv.innerHTML = `
+            <div class="alert alert-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              <div class="alert-enhanced-content">
+                <div class="alert-enhanced-title">Receiving Successful!</div>
+                <div class="alert-enhanced-message">
+                  SKU: ${data.sku}<br>
+                  Quantity: ${data.quantity}<br>
+                  Location: ${data.destination}<br>
+                  User: ${data.user}<br>
+                  <small>Inventory updated automatically</small>
+                </div>
+              </div>
+            </div>
+          `;
+          clearReceivingForm();
+          loadSnapshot(); // Refresh inventory display
+        } else {
+          throw new Error(result.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        resultDiv.innerHTML = `
+          <div class="alert alert-error">
+            <i class="icon icon-error icon-margin-right"></i>
+            <div class="alert-enhanced-content">
+              <div class="alert-enhanced-title">Error</div>
+              <div class="alert-enhanced-message">
+                ${error.message}<br>
+                <small>Please try again or contact support if the problem persists.</small>
+              </div>
+            </div>
+          </div>
+        `;
+        console.error('Receiving submission failed:', error);
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+      });
+    }
+
+    function clearReceivingForm() {
+      document.getElementById('receivingForm').reset();
+      
+      // Reset location buttons to default (Shop)
+      const shopBtn = document.getElementById('shopBtn');
+      const warehouseBtn = document.getElementById('warehouseBtn');
+      selectLocation('Shop', shopBtn, warehouseBtn);
+    }
+
+    // ====== Inventory Snapshot ======
+    function loadSnapshot() {
+      const tableDiv = document.getElementById('snapshotTable');
+      tableDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Loading inventory...</div>';
+      
+      fetch(apiBase + "?action=getInventorySnapshot")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success" && data.data && data.data.length > 0) {
+            displaySnapshot(data.data);
+          } else {
+            tableDiv.innerHTML = '<div class="alert alert-error"><i class="icon icon-error icon-margin-right"></i>No inventory data available</div>';
+          }
+        })
+        .catch(error => {
+          tableDiv.innerHTML = `<div class="alert alert-error"><i class="icon icon-error icon-margin-right"></i>Error loading inventory: ${error.message}</div>`;
+          console.error('Failed to load snapshot:', error);
+        });
+    }
+
+    function displaySnapshot(data) {
+      const tableDiv = document.getElementById('snapshotTable');
+      
+      if (data.length === 0) {
+        tableDiv.innerHTML = '<div class="alert alert-info"><i class="icon icon-info icon-margin-right"></i>No inventory data available</div>';
+        return;
+      }
+
+      const headers = data[0];
+      const rows = data.slice(1);
+      
+      let html = '<table class="w-full" style="border-collapse: collapse; margin-top: var(--spacing-md);">';
+      
+      // Headers
+      html += '<thead><tr>';
+      headers.forEach(header => {
+        html += `<th style="border: 1px solid var(--color-border-light); padding: var(--spacing-md); background-color: var(--color-bg-tertiary); text-align: left; font-weight: var(--font-weight-semibold);">${header}</th>`;
+      });
+      html += '</tr></thead>';
+      
+      // Rows
+      html += '<tbody>';
+      rows.forEach(row => {
+        html += '<tr>';
+        row.forEach(cell => {
+          html += `<td style="border: 1px solid var(--color-border-light); padding: var(--spacing-md);">${cell}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      
+      tableDiv.innerHTML = html;
+    }
+
+    function clearSnapshot() {
+      document.getElementById('snapshotTable').innerHTML = '';
+    }
+
+    // ====== Transfer Form Setup ======
+    function setupTransferForm() {
+      const transferForm = document.getElementById('transferForm');
+      transferForm.addEventListener('submit', handleTransferSubmit);
+    }
+
+    function handleTransferSubmit(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = {
+        sku: formData.get('transferSku'),
+        quantity: parseInt(formData.get('transferQuantity')),
+        mode: 'TRANSFER',
+        source: formData.get('transferSource'),
+        destination: formData.get('transferDestination'),
+        user: formData.get('transferUser'),
+        notes: formData.get('transferNotes') || ''
+      };
+
+      submitTransfer(data);
+    }
+
+    function submitTransfer(data) {
+      const resultDiv = document.getElementById('receivingResult'); // Reusing receivingResult for transfer display
+      const transferSubmitBtn = document.getElementById('transferSubmitBtn');
+      
+      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing transfer...</div>';
+      transferSubmitBtn.disabled = true;
+      
+      const params = new URLSearchParams({
+        action: 'addInventoryLog',
+        data: JSON.stringify([data])
+      });
+
+      fetch(apiBase + '?' + params.toString(), {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === 'success') {
+          resultDiv.innerHTML = `
+            <div class="alert alert-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              <div class="alert-enhanced-content">
+                <div class="alert-enhanced-title">Transfer Successful!</div>
+                <div class="alert-enhanced-message">
+                  SKU: ${data.sku}<br>
+                  Quantity: ${data.quantity}<br>
+                  From: ${data.source}<br>
+                  To: ${data.destination}<br>
+                  User: ${data.user}<br>
+                  <small>Inventory updated automatically</small>
+                </div>
+              </div>
+            </div>
+          `;
+          clearTransferForm();
+          loadSnapshot(); // Refresh inventory display
+        } else {
+          throw new Error(result.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        resultDiv.innerHTML = `
+          <div class="alert alert-error">
+            <i class="icon icon-error icon-margin-right"></i>
+            <div class="alert-enhanced-content">
+              <div class="alert-enhanced-title">Error</div>
+              <div class="alert-enhanced-message">
+                ${error.message}<br>
+                <small>Please try again or contact support if the problem persists.</small>
+              </div>
+            </div>
+          </div>
+        `;
+        console.error('Transfer submission failed:', error);
+      })
+      .finally(() => {
+        transferSubmitBtn.disabled = false;
+      });
+    }
+
+    function clearTransferForm() {
+      document.getElementById('transferForm').reset();
+      
+      // Reset location buttons to default (Shop → Warehouse)
+      const transferShopBtn = document.getElementById('transferShopBtn');
+      const transferWarehouseBtn = document.getElementById('transferWarehouseBtn');
+      selectTransferSourceLocation('Shop', transferShopBtn, transferWarehouseBtn);
+      
+      // Clear direction display
+      const transferDirectionDiv = document.getElementById('transferDirection');
+      transferDirectionDiv.textContent = 'From: Shop → To: Warehouse';
+    }
+
+    function showTransferSearchResults(products, searchTerm, minScore = 0, totalMatches = 0, totalProducts = 0) {
+      const transferSearchResults = document.getElementById('transferSearchResults');
+      const transferProductCountDiv = document.getElementById('transferProductCount');
+      
+      if (!products || products.length === 0) {
+        transferSearchResults.innerHTML = `
+          <div class="search-results-empty">
+            <div class="mb-2">No high-relevance products found</div>
+            <div class="text-xs text-tertiary">
+              Minimum score: ${minScore}<br>
+              ${totalMatches > 0 ? `${totalMatches} products matched but were below threshold<br>` : ''}
+              Try a more specific search term
+            </div>
+          </div>
+        `;
+        transferProductCountDiv.textContent = totalMatches > 0 
+          ? `No results above minimum score ${minScore} (${totalMatches} low-relevance matches filtered out)`
+          : `No results above minimum score ${minScore}`;
+      } else {
+        transferSearchResults.innerHTML = '';
+        
+        products.forEach(product => {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'search-result-item';
+          
+          // Highlight matched parts in SKU and name
+          const highlightedSku = highlightMatches(product.sku, searchTerm);
+          const highlightedName = highlightMatches(product.displayName, searchTerm);
+          
+          // Color-code the relevance score
+          let scoreColor = 'var(--color-text-tertiary)';
+          if (product.score >= 80) scoreColor = 'var(--color-success)'; // Green for high relevance
+          else if (product.score >= 50) scoreColor = 'var(--color-warning)'; // Orange for medium relevance
+          else if (product.score >= 20) scoreColor = 'var(--color-info)'; // Blue for low relevance
+          
+          resultItem.innerHTML = `
+            <div class="font-semibold">${highlightedSku}</div>
+            <div class="text-sm text-secondary">${highlightedName}</div>
+            <div class="text-xs font-medium" style="color: ${scoreColor}; margin-top: var(--spacing-xs);">
+              Relevance: ${product.score} ${product.score >= 80 ? '⭐' : product.score >= 50 ? '✨' : '•'}
+            </div>
+          `;
+          
+          resultItem.addEventListener('click', () => {
+            selectTransferProduct(product);
+          });
+          
+          resultItem.addEventListener('mouseenter', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-tertiary)';
+          });
+          
+          resultItem.addEventListener('mouseleave', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-primary)';
+          });
+          
+          transferSearchResults.appendChild(resultItem);
+        });
+        
+        // Update product count display with score information
+        if (products === allProducts) {
+          transferProductCountDiv.textContent = `Showing all ${products.length} products`;
+        } else {
+          const filteredOut = totalMatches - products.length;
+          const filterInfo = filteredOut > 0 ? ` (${filteredOut} low-relevance results filtered out)` : '';
+          transferProductCountDiv.textContent = `Showing ${products.length} high-relevance results (min score: ${minScore})${filterInfo}`;
+        }
+      }
+      
+      transferSearchResults.style.display = 'block';
+    }
+
+    function filterTransferProducts(searchTerm) {
+      if (!searchTerm || searchTerm.trim() === '') {
+        hideTransferSearchResults();
+        return;
+      }
+      
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Score each product based on fuzzy matching
+      const scoredProducts = allProducts.map(product => {
+        const skuLower = product.sku.toLowerCase();
+        const nameLower = product.displayName.toLowerCase();
+        
+        let score = 0;
+        let bestScore = 0;
+        
+        // Check SKU matching
+        const skuScore = calculateFuzzyScore(searchLower, skuLower);
+        score += skuScore * 2; // SKU gets higher weight
+        bestScore = Math.max(bestScore, skuScore);
+        
+        // Check product name matching
+        const nameScore = calculateFuzzyScore(searchLower, nameLower);
+        score += nameScore;
+        bestScore = Math.max(bestScore, nameScore);
+        
+        // Bonus for exact matches
+        if (skuLower === searchLower) score += 100;
+        if (nameLower === searchLower) score += 50;
+        
+        // Bonus for starts with
+        if (skuLower.startsWith(searchLower)) score += 30;
+        if (nameLower.startsWith(searchLower)) score += 20;
+        
+        // Bonus for contains
+        if (skuLower.includes(searchLower)) score += 10;
+        if (nameLower.includes(searchLower)) score += 5;
+        
+        return { ...product, score, bestScore };
+      });
+      
+      // Filter products with high relevance scores and sort by score
+      const minScore = 90; // Fixed high-quality threshold
+      const filteredProducts = scoredProducts
+        .filter(product => product.score >= minScore)
+        .sort((a, b) => b.score - a.score);
+      
+      // Get total count of products that matched (including low scores)
+      const totalMatches = scoredProducts.filter(product => product.score > 0).length;
+      
+      // Show all results above the threshold (no artificial limit)
+      showTransferSearchResults(filteredProducts, searchTerm, minScore, totalMatches, scoredProducts.length);
+    }
+
+    function clearTransferSearch() {
+      const transferSkuInput = document.getElementById('transferSkuInput');
+      transferSkuInput.value = '';
+      hideTransferSearchResults();
+    }
+
+    function setupTransferProductSearch() {
+      const transferSkuInput = document.getElementById('transferSkuInput');
+      
+      // Add event listener for search input
+      transferSkuInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+          hideTransferSearchResults();
+          return;
+        }
+        filterTransferProducts(this.value);
+      });
+      
+      // Keyboard navigation
+      transferSkuInput.addEventListener('keydown', function(e) {
+        const transferSearchResults = document.getElementById('transferSearchResults');
+        const visibleItems = transferSearchResults.querySelectorAll('.search-result-item');
+        
+        if (visibleItems.length === 0) return;
+        
+        let currentIndex = -1;
+        visibleItems.forEach((item, index) => {
+          if (item.classList.contains('selected')) {
+            currentIndex = index;
+          }
+        });
+        
+        switch(e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            if (currentIndex < visibleItems.length - 1) {
+              if (currentIndex >= 0) visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex + 1].classList.add('selected');
+            }
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            if (currentIndex > 0) {
+              visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex - 1].classList.add('selected');
+            }
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (currentIndex >= 0) {
+              const selectedProduct = allProducts.find(p => 
+                p.sku === visibleItems[currentIndex].querySelector('div').textContent.replace(/<[^>]*>/g, '')
+              );
+              if (selectedProduct) selectTransferProduct(selectedProduct);
+            }
+            break;
+          case 'Escape':
+            hideTransferSearchResults();
+            transferSkuInput.blur();
+            break;
+        }
+      });
+      
+      // Hide search results when clicking outside
+      document.addEventListener('click', function(e) {
+        const searchContainer = document.getElementById('transferSkuInput').parentElement;
+        if (!searchContainer.contains(e.target)) {
+          hideTransferSearchResults();
+        }
+      });
+      
+      // Show all products when input is focused and empty
+      transferSkuInput.addEventListener('focus', function() {
+        if (this.value.trim() === '') {
+          showTransferSearchResults(allProducts);
+        }
+      });
+    }
+
+    function hideTransferSearchResults() {
+      const transferSearchResults = document.getElementById('transferSearchResults');
+      transferSearchResults.style.display = 'none';
+    }
+
+    function showAdjustmentSearchResults(products, searchTerm, minScore = 0, totalMatches = 0, totalProducts = 0) {
+      const adjustmentSearchResults = document.getElementById('adjustmentSearchResults');
+      const adjustmentProductCountDiv = document.getElementById('adjustmentProductCount');
+      
+      if (!products || products.length === 0) {
+        adjustmentSearchResults.innerHTML = `
+          <div class="search-results-empty">
+            <div class="mb-2">No high-relevance products found</div>
+            <div class="text-xs text-tertiary">
+              Minimum score: ${minScore}<br>
+              ${totalMatches > 0 ? `${totalMatches} products matched but were below threshold<br>` : ''}
+              Try a more specific search term
+            </div>
+          </div>
+        `;
+        adjustmentProductCountDiv.textContent = totalMatches > 0 
+          ? `No results above minimum score ${minScore} (${totalMatches} low-relevance matches filtered out)`
+          : `No results above minimum score ${minScore}`;
+      } else {
+        adjustmentSearchResults.innerHTML = '';
+        
+        products.forEach(product => {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'search-result-item';
+          
+          // Highlight matched parts in SKU and name
+          const highlightedSku = highlightMatches(product.sku, searchTerm);
+          const highlightedName = highlightMatches(product.displayName, searchTerm);
+          
+          // Color-code the relevance score
+          let scoreColor = 'var(--color-text-tertiary)';
+          if (product.score >= 80) scoreColor = 'var(--color-success)'; // Green for high relevance
+          else if (product.score >= 50) scoreColor = 'var(--color-warning)'; // Orange for medium relevance
+          else if (product.score >= 20) scoreColor = 'var(--color-info)'; // Blue for low relevance
+          
+          resultItem.innerHTML = `
+            <div class="font-semibold">${highlightedSku}</div>
+            <div class="text-sm text-secondary">${highlightedName}</div>
+            <div class="text-xs font-medium" style="color: ${scoreColor}; margin-top: var(--spacing-xs);">
+              Relevance: ${product.score} ${product.score >= 80 ? '⭐' : product.score >= 50 ? '✨' : '•'}
+            </div>
+          `;
+          
+          resultItem.addEventListener('click', () => {
+            selectAdjustmentProduct(product);
+          });
+          
+          resultItem.addEventListener('mouseenter', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-tertiary)';
+          });
+          
+          resultItem.addEventListener('mouseleave', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-primary)';
+          });
+          
+          adjustmentSearchResults.appendChild(resultItem);
+        });
+        
+        // Update product count display with score information
+        if (products === allProducts) {
+          adjustmentProductCountDiv.textContent = `Showing all ${products.length} products`;
+        } else {
+          const filteredOut = totalMatches - products.length;
+          const filterInfo = filteredOut > 0 ? ` (${filteredOut} low-relevance results filtered out)` : '';
+          adjustmentProductCountDiv.textContent = `Showing ${products.length} high-relevance results (min score: ${minScore})${filterInfo}`;
+        }
+      }
+      
+      adjustmentSearchResults.style.display = 'block';
+    }
+
+    function clearAdjustmentSearch() {
+      const adjustmentSkuInput = document.getElementById('adjustmentSkuInput');
+      adjustmentSkuInput.value = '';
+      hideAdjustmentSearchResults();
+    }
+
+    // ====== Adjustment Form Setup ======
+    function setupAdjustmentForm() {
+      const adjustmentForm = document.getElementById('adjustmentForm');
+      adjustmentForm.addEventListener('submit', handleAdjustmentSubmit);
+    }
+
+    function handleAdjustmentSubmit(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = {
+        sku: formData.get('adjustmentSku'),
+        quantity: parseInt(formData.get('adjustmentQuantity')),
+        mode: 'ADJUSTMENT',
+        source: formData.get('adjustmentLocation'), // Source is the location being adjusted
+        destination: formData.get('adjustmentLocation'), // Destination is the location being adjusted
+        user: formData.get('adjustmentUser'),
+        notes: formData.get('adjustmentNotes') || ''
+      };
+
+      submitAdjustment(data);
+    }
+
+    function submitAdjustment(data) {
+      const resultDiv = document.getElementById('receivingResult'); // Reusing receivingResult for adjustment display
+      const adjustmentSubmitBtn = document.getElementById('adjustmentSubmitBtn');
+      
+      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing adjustment...</div>';
+      adjustmentSubmitBtn.disabled = true;
+      
+      const params = new URLSearchParams({
+        action: 'addInventoryLog',
+        data: JSON.stringify([data])
+      });
+
+      fetch(apiBase + '?' + params.toString(), {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === 'success') {
+          resultDiv.innerHTML = `
+            <div class="alert alert-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              <div class="alert-enhanced-content">
+                <div class="alert-enhanced-title">Adjustment Successful!</div>
+                <div class="alert-enhanced-message">
+                  SKU: ${data.sku}<br>
+                  Quantity: ${data.quantity}<br>
+                  Location: ${data.source}<br>
+                  User: ${data.user}<br>
+                  <small>Inventory updated automatically</small>
+                </div>
+              </div>
+            </div>
+          `;
+          clearAdjustmentForm();
+          loadSnapshot(); // Refresh inventory display
+        } else {
+          throw new Error(result.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        resultDiv.innerHTML = `
+          <div class="alert alert-error">
+            <i class="icon icon-error icon-margin-right"></i>
+            <div class="alert-enhanced-content">
+              <div class="alert-enhanced-title">Error</div>
+              <div class="alert-enhanced-message">
+                ${error.message}<br>
+                <small>Please try again or contact support if the problem persists.</small>
+              </div>
+            </div>
+          </div>
+        `;
+        console.error('Adjustment submission failed:', error);
+      })
+      .finally(() => {
+        adjustmentSubmitBtn.disabled = false;
+      });
+    }
+
+    function clearAdjustmentForm() {
+      document.getElementById('adjustmentForm').reset();
+      
+      // Reset location buttons to default (Shop)
+      const adjustmentShopBtn = document.getElementById('adjustmentShopBtn');
+      const adjustmentWarehouseBtn = document.getElementById('adjustmentWarehouseBtn');
+      selectAdjustmentLocation('Shop', adjustmentShopBtn, adjustmentWarehouseBtn);
+    }
+
+    function setupAdjustmentProductSearch() {
+      const adjustmentSkuInput = document.getElementById('adjustmentSkuInput');
+      
+      // Add event listener for search input
+      adjustmentSkuInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+          hideAdjustmentSearchResults();
+          return;
+        }
+        filterAdjustmentProducts(this.value);
+      });
+      
+      // Keyboard navigation
+      adjustmentSkuInput.addEventListener('keydown', function(e) {
+        const adjustmentSearchResults = document.getElementById('adjustmentSearchResults');
+        const visibleItems = adjustmentSearchResults.querySelectorAll('.search-result-item');
+        
+        if (visibleItems.length === 0) return;
+        
+        let currentIndex = -1;
+        visibleItems.forEach((item, index) => {
+          if (item.classList.contains('selected')) {
+            currentIndex = index;
+          }
+        });
+        
+        switch(e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            if (currentIndex < visibleItems.length - 1) {
+              if (currentIndex >= 0) visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex + 1].classList.add('selected');
+            }
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            if (currentIndex > 0) {
+              visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex - 1].classList.add('selected');
+            }
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (currentIndex >= 0) {
+              const selectedProduct = allProducts.find(p => 
+                p.sku === visibleItems[currentIndex].querySelector('div').textContent.replace(/<[^>]*>/g, '')
+              );
+              if (selectedProduct) selectAdjustmentProduct(selectedProduct);
+            }
+            break;
+          case 'Escape':
+            hideAdjustmentSearchResults();
+            adjustmentSkuInput.blur();
+            break;
+        }
+      });
+      
+      // Hide search results when clicking outside
+      document.addEventListener('click', function(e) {
+        const searchContainer = document.getElementById('adjustmentSkuInput').parentElement;
+        if (!searchContainer.contains(e.target)) {
+          hideAdjustmentSearchResults();
+        }
+      });
+      
+      // Show all products when input is focused and empty
+      adjustmentSkuInput.addEventListener('focus', function() {
+        if (this.value.trim() === '') {
+          showAdjustmentSearchResults(allProducts);
+        }
+      });
+    }
+
+    function filterAdjustmentProducts(searchTerm) {
+      if (!searchTerm || searchTerm.trim() === '') {
+        hideAdjustmentSearchResults();
+        return;
+      }
+      
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Score each product based on fuzzy matching
+      const scoredProducts = allProducts.map(product => {
+        const skuLower = product.sku.toLowerCase();
+        const nameLower = product.displayName.toLowerCase();
+        
+        let score = 0;
+        let bestScore = 0;
+        
+        // Check SKU matching
+        const skuScore = calculateFuzzyScore(searchLower, skuLower);
+        score += skuScore * 2; // SKU gets higher weight
+        bestScore = Math.max(bestScore, skuScore);
+        
+        // Check product name matching
+        const nameScore = calculateFuzzyScore(searchLower, nameLower);
+        score += nameScore;
+        bestScore = Math.max(bestScore, nameScore);
+        
+        // Bonus for exact matches
+        if (skuLower === searchLower) score += 100;
+        if (nameLower === searchLower) score += 50;
+        
+        // Bonus for starts with
+        if (skuLower.startsWith(searchLower)) score += 30;
+        if (nameLower.startsWith(searchLower)) score += 20;
+        
+        // Bonus for contains
+        if (skuLower.includes(searchLower)) score += 10;
+        if (nameLower.includes(searchLower)) score += 5;
+        
+        return { ...product, score, bestScore };
+      });
+      
+      // Filter products with high relevance scores and sort by score
+      const minScore = 90; // Fixed high-quality threshold
+      const filteredProducts = scoredProducts
+        .filter(product => product.score >= minScore)
+        .sort((a, b) => b.score - a.score);
+      
+      // Get total count of products that matched (including low scores)
+      const totalMatches = scoredProducts.filter(product => product.score > 0).length;
+      
+      // Show all results above the threshold (no artificial limit)
+      showAdjustmentSearchResults(filteredProducts, searchTerm, minScore, totalMatches, scoredProducts.length);
+    }
+
+    function selectAdjustmentProduct(product) {
+      const adjustmentSkuInput = document.getElementById('adjustmentSkuInput');
+      const adjustmentSearchResults = document.getElementById('adjustmentSearchResults');
+      
+      adjustmentSkuInput.value = product.sku;
+      adjustmentSearchResults.style.display = 'none';
+      
+      console.log(`Selected adjustment product: ${product.sku} - ${product.displayName}`);
+    }
+
+    function hideAdjustmentSearchResults() {
+      const adjustmentSearchResults = document.getElementById('adjustmentSearchResults');
+      adjustmentSearchResults.style.display = 'none';
+    }
+
+    function setupAdjustmentLocationButtons() {
+      const adjustmentShopBtn = document.getElementById('adjustmentShopBtn');
+      const adjustmentWarehouseBtn = document.getElementById('adjustmentWarehouseBtn');
+      const adjustmentLocationInput = document.getElementById('adjustmentLocation');
+      
+      // Add click event listeners
+      adjustmentShopBtn.addEventListener('click', () => selectAdjustmentLocation('Shop', adjustmentShopBtn, adjustmentWarehouseBtn));
+      adjustmentWarehouseBtn.addEventListener('click', () => selectAdjustmentLocation('Warehouse', adjustmentWarehouseBtn, adjustmentShopBtn));
+      
+      // Set default selection (Shop)
+      selectAdjustmentLocation('Shop', adjustmentShopBtn, adjustmentWarehouseBtn);
+    }
+
+    function selectAdjustmentLocation(location, selectedBtn, otherBtn) {
+      const adjustmentLocationInput = document.getElementById('adjustmentLocation');
+      
+      // Update hidden input value
+      adjustmentLocationInput.value = location;
+      
+      // Update button styles
+      selectedBtn.classList.add('active');
+      otherBtn.classList.remove('active');
+      
+      console.log(`Selected adjustment location: ${location}`);
+    }
+
+    // ====== Sales Form Setup ======
+    function setupSalesForm() {
+      const salesForm = document.getElementById('salesForm');
+      salesForm.addEventListener('submit', handleSalesSubmit);
+    }
+
+    function handleSalesSubmit(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = {
+        sku: formData.get('salesSku'),
+        quantity: parseInt(formData.get('salesQuantity')),
+        mode: 'SALE',
+        source: 'Shop', // Sales reduce stock from Shop location
+        destination: 'Customer', // Sales go to customers
+        user: formData.get('salesUser'),
+        notes: formData.get('salesNotes') || ''
+      };
+
+      submitSales(data);
+    }
+
+    function submitSales(data) {
+      const resultDiv = document.getElementById('receivingResult'); // Reusing receivingResult for sales display
+      const salesSubmitBtn = document.getElementById('salesSubmitBtn');
+      
+      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing sale...</div>';
+      salesSubmitBtn.disabled = true;
+      
+      const params = new URLSearchParams({
+        action: 'addInventoryLog',
+        data: JSON.stringify([data])
+      });
+
+      fetch(apiBase + '?' + params.toString(), {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === 'success') {
+          resultDiv.innerHTML = `
+            <div class="alert alert-success">
+              <i class="icon icon-check icon-margin-right"></i>
+              <div class="alert-enhanced-content">
+                <div class="alert-enhanced-title">Sale Recorded Successfully!</div>
+                <div class="alert-enhanced-message">
+                  SKU: ${data.sku}<br>
+                  Quantity Sold: ${data.quantity}<br>
+                  Location: ${data.source}<br>
+                  User: ${data.user}<br>
+                  <small>Inventory and Sales snapshots updated automatically</small>
+                </div>
+              </div>
+            </div>
+          `;
+          clearSalesForm();
+          loadSnapshot(); // Refresh inventory display
+        } else {
+          throw new Error(result.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        resultDiv.innerHTML = `
+          <div class="alert alert-error">
+            <i class="icon icon-error icon-margin-right"></i>
+            <div class="alert-enhanced-content">
+              <div class="alert-enhanced-title">Error</div>
+              <div class="alert-enhanced-message">
+                ${error.message}<br>
+                <small>Please try again or contact support if the problem persists.</small>
+              </div>
+            </div>
+          </div>
+        `;
+        console.error('Sales submission failed:', error);
+      })
+      .finally(() => {
+        salesSubmitBtn.disabled = false;
+      });
+    }
+
+    function clearSalesForm() {
+      document.getElementById('salesForm').reset();
+    }
+
+    function showSalesSearchResults(products, searchTerm, minScore = 0, totalMatches = 0, totalProducts = 0) {
+      const salesSearchResults = document.getElementById('salesSearchResults');
+      const salesProductCountDiv = document.getElementById('salesProductCount');
+      
+      if (!products || products.length === 0) {
+        salesSearchResults.innerHTML = `
+          <div class="search-results-empty">
+            <div class="mb-2">No high-relevance products found</div>
+            <div class="text-xs text-tertiary">
+              Minimum score: ${minScore}<br>
+              ${totalMatches > 0 ? `${totalMatches} products matched but were below threshold<br>` : ''}
+              Try a more specific search term
+            </div>
+          </div>
+        `;
+        salesProductCountDiv.textContent = totalMatches > 0 
+          ? `No results above minimum score ${minScore} (${totalMatches} low-relevance matches filtered out)`
+          : `No results above minimum score ${minScore}`;
+      } else {
+        salesSearchResults.innerHTML = '';
+        
+        products.forEach(product => {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'search-result-item';
+          
+          // Highlight matched parts in SKU and name
+          const highlightedSku = highlightMatches(product.sku, searchTerm);
+          const highlightedName = highlightMatches(product.displayName, searchTerm);
+          
+          // Color-code the relevance score
+          let scoreColor = 'var(--color-text-tertiary)';
+          if (product.score >= 80) scoreColor = 'var(--color-success)'; // Green for high relevance
+          else if (product.score >= 50) scoreColor = 'var(--color-warning)'; // Orange for medium relevance
+          else if (product.score >= 20) scoreColor = 'var(--color-info)'; // Blue for low relevance
+          
+          resultItem.innerHTML = `
+            <div class="font-semibold">${highlightedSku}</div>
+            <div class="text-sm text-secondary">${highlightedName}</div>
+            <div class="text-xs font-medium" style="color: ${scoreColor}; margin-top: var(--spacing-xs);">
+              Relevance: ${product.score} ${product.score >= 80 ? '⭐' : product.score >= 50 ? '✨' : '•'}
+            </div>
+          `;
+          
+          resultItem.addEventListener('click', () => {
+            selectSalesProduct(product);
+          });
+          
+          resultItem.addEventListener('mouseenter', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-tertiary)';
+          });
+          
+          resultItem.addEventListener('mouseleave', () => {
+            resultItem.style.backgroundColor = 'var(--color-bg-primary)';
+          });
+          
+          salesSearchResults.appendChild(resultItem);
+        });
+        
+        // Update product count display with score information
+        if (products === allProducts) {
+          salesProductCountDiv.textContent = `Showing all ${products.length} products`;
+        } else {
+          const filteredOut = totalMatches - products.length;
+          const filterInfo = filteredOut > 0 ? ` (${filteredOut} low-relevance results filtered out)` : '';
+          salesProductCountDiv.textContent = `Showing ${products.length} high-relevance results (min score: ${minScore})${filterInfo}`;
+        }
+      }
+      
+      salesSearchResults.style.display = 'block';
+    }
+
+    function filterSalesProducts(searchTerm) {
+      if (!searchTerm || searchTerm.trim() === '') {
+        hideSalesSearchResults();
+        return;
+      }
+      
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Score each product based on fuzzy matching
+      const scoredProducts = allProducts.map(product => {
+        const skuLower = product.sku.toLowerCase();
+        const nameLower = product.displayName.toLowerCase();
+        
+        let score = 0;
+        let bestScore = 0;
+        
+        // Check SKU matching
+        const skuScore = calculateFuzzyScore(searchLower, skuLower);
+        score += skuScore * 2; // SKU gets higher weight
+        bestScore = Math.max(bestScore, skuScore);
+        
+        // Check product name matching
+        const nameScore = calculateFuzzyScore(searchLower, nameLower);
+        score += nameScore;
+        bestScore = Math.max(bestScore, nameScore);
+        
+        // Bonus for exact matches
+        if (skuLower === searchLower) score += 100;
+        if (nameLower === searchLower) score += 50;
+        
+        // Bonus for starts with
+        if (skuLower.startsWith(searchLower)) score += 30;
+        if (nameLower.startsWith(searchLower)) score += 20;
+        
+        // Bonus for contains
+        if (skuLower.includes(searchLower)) score += 10;
+        if (nameLower.includes(searchLower)) score += 5;
+        
+        return { ...product, score, bestScore };
+      });
+      
+      // Filter products with high relevance scores and sort by score
+      const minScore = 90; // Fixed high-quality threshold
+      const filteredProducts = scoredProducts
+        .filter(product => product.score >= minScore)
+        .sort((a, b) => b.score - a.score);
+      
+      // Get total count of products that matched (including low scores)
+      const totalMatches = scoredProducts.filter(product => product.score > 0).length;
+      
+      // Show all results above the threshold (no artificial limit)
+      showSalesSearchResults(filteredProducts, searchTerm, minScore, totalMatches, scoredProducts.length);
+    }
+
+    function clearSalesSearch() {
+      const salesSkuInput = document.getElementById('salesSkuInput');
+      salesSkuInput.value = '';
+      hideSalesSearchResults();
+    }
+
+    function selectSalesProduct(product) {
+      const salesSkuInput = document.getElementById('salesSkuInput');
+      const salesSearchResults = document.getElementById('salesSearchResults');
+      
+      salesSkuInput.value = product.sku;
+      salesSearchResults.style.display = 'none';
+      
+      console.log(`Selected sales product: ${product.sku} - ${product.displayName}`);
+    }
+
+    function setupSalesProductSearch() {
+      const salesSkuInput = document.getElementById('salesSkuInput');
+      
+      // Add event listener for search input
+      salesSkuInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+          hideSalesSearchResults();
+          return;
+        }
+        filterSalesProducts(this.value);
+      });
+      
+      // Keyboard navigation
+      salesSkuInput.addEventListener('keydown', function(e) {
+        const salesSearchResults = document.getElementById('salesSearchResults');
+        const visibleItems = salesSearchResults.querySelectorAll('.search-result-item');
+        
+        if (visibleItems.length === 0) return;
+        
+        let currentIndex = -1;
+        visibleItems.forEach((item, index) => {
+          if (item.classList.contains('selected')) {
+            currentIndex = index;
+          }
+        });
+        
+        switch(e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            if (currentIndex < visibleItems.length - 1) {
+              if (currentIndex >= 0) visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex + 1].classList.add('selected');
+            }
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            if (currentIndex > 0) {
+              visibleItems[currentIndex].classList.remove('selected');
+              visibleItems[currentIndex - 1].classList.add('selected');
+            }
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (currentIndex >= 0) {
+              const selectedProduct = allProducts.find(p => 
+                p.sku === visibleItems[currentIndex].querySelector('div').textContent.replace(/<[^>]*>/g, '')
+              );
+              if (selectedProduct) selectSalesProduct(selectedProduct);
+            }
+            break;
+          case 'Escape':
+            hideSalesSearchResults();
+            salesSkuInput.blur();
+            break;
+        }
+      });
+      
+      // Hide search results when clicking outside
+      document.addEventListener('click', function(e) {
+        const searchContainer = document.getElementById('salesSkuInput').parentElement;
+        if (!searchContainer.contains(e.target)) {
+          hideSalesSearchResults();
+        }
+      });
+      
+      // Show all products when input is focused and empty
+      salesSkuInput.addEventListener('focus', function() {
+        if (this.value.trim() === '') {
+          showSalesSearchResults(allProducts);
+        }
+      });
+    }
+
+    function hideSalesSearchResults() {
+      const salesSearchResults = document.getElementById('salesSearchResults');
+      salesSearchResults.style.display = 'none';
+    }
+  </script>
 </body>
 </html>
-
