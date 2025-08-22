@@ -46,11 +46,13 @@
 .icon-add::before { content: '\e145'; }            /* Add/Plus */
 .icon-remove::before { content: '\e15b'; }         /* Remove/Minus */
 .icon-transfer::before { content: '\e5d4'; }       /* Transfer/Exchange */
+.icon-swap-horiz::before { content: '\e933'; }    /* Swap Horizontal/Two Arrows */
 .icon-adjust::before { content: '\e3c9'; }         /* Adjust/Edit */
 .icon-search::before { content: '\e8b6'; }         /* Search */
 .icon-clear::before { content: '\e5cd'; }          /* Clear/Close */
 .icon-refresh::before { content: '\e5d5'; }        /* Refresh/Reload */
 .icon-check::before { content: '\e5ca'; }          /* Check/Success */
+.icon-check-circle::before { content: '\e86c'; }   /* Check Circle/Success */
 .icon-error::before { content: '\e000'; }          /* Error */
 .icon-warning::before { content: '\e002'; }        /* Warning */
 .icon-info::before { content: '\e88e'; }           /* Info */

@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+  <!-- Toast Container for Floating Notifications -->
+  <div id="toastContainer" class="toast-container"></div>
+  
   <div class="container">
     <header class="page-header">
       <h1 class="page-title">
@@ -17,18 +20,11 @@
     
     <main class="main-content">
       <!-- Connection Status -->
-      <div class="status-section">
-        <h3>
-          <i class="icon icon-connection icon-margin-right"></i>
-          Connection Status
-        </h3>
-        <p>
-          <span class="status-indicator" id="connectionStatus"></span>
-          <span id="connectionText">Testing connection...</span>
-        </p>
-        <button class="btn btn-primary" onclick="testConnection()">
-          <i class="icon icon-refresh icon-margin-right"></i>
-          Test Connection
+      <div class="status-section minimal">
+        <span class="status-indicator" id="connectionStatus"></span>
+        <span id="connectionText">Testing connection...</span>
+        <button class="btn btn-tiny" onclick="testConnection()">
+          <i class="icon icon-refresh icon-sm"></i>
         </button>
       </div>
 
@@ -39,12 +35,7 @@
             <i class="icon icon-add icon-margin-right"></i>
             Receiving - Add New Stock
           </h3>
-          <div class="form-section-actions">
-            <button class="btn btn-secondary" onclick="loadProducts()">
-              <i class="icon icon-refresh icon-margin-right"></i>
-              Refresh Product List
-            </button>
-          </div>
+          
         </div>
         <p>Use this form to record new inventory received from suppliers.</p>
         
@@ -52,17 +43,13 @@
           <div class="form-group">
             <label class="form-label" for="sku">Select Product:</label>
             <div class="search-container">
-              <input type="text" id="skuInput" name="sku" class="form-input search-input" placeholder="Type to search products..." required>
+              <input type="text" id="skuInput" name="sku" class="form-input search-input" placeholder="Loading products..." required>
               <button type="button" class="search-clear" onclick="clearSearch()">
                 <i class="icon icon-clear"></i>
               </button>
               <div id="searchResults" class="search-results"></div>
             </div>
             <div id="productCount" class="search-info"></div>
-            <div id="searchTips" class="search-tips">
-              <i class="icon icon-info icon-margin-right"></i>
-              <strong>Search Tips:</strong> Type SKU, product name, or partial text. Only results with score ≥90 are shown. Use ↑↓ arrows to navigate, Enter to select, Esc to close.
-            </div>
             <small class="form-help">Type to search products from Product Master sheet</small>
           </div>
           
@@ -113,7 +100,7 @@
       <div class="form-section">
         <div class="form-section-header">
           <h3 class="form-section-title">
-            <i class="icon icon-transfer icon-margin-right"></i>
+            <i class="icon icon-swap-horiz icon-margin-right"></i>
             Transfer - Move Stock Between Locations
           </h3>
         </div>
@@ -123,7 +110,7 @@
           <div class="form-group">
             <label class="form-label" for="transferSku">Select Product:</label>
             <div class="search-container">
-              <input type="text" id="transferSkuInput" name="transferSku" class="form-input search-input" placeholder="Type to search products..." required>
+              <input type="text" id="transferSkuInput" name="transferSku" class="form-input search-input" placeholder="Loading products..." required>
               <button type="button" class="search-clear" onclick="clearTransferSearch()">
                 <i class="icon icon-clear"></i>
               </button>
@@ -186,13 +173,13 @@
             Adjustment - Set Exact Stock Levels
           </h3>
         </div>
-        <p>Use this form to correct inventory levels, set exact quantities, or handle stock corrections (including negative adjustments).</p>
+        <p>Use this form to correct inventory levels, set exact quantities, or handle stock corrections.</p>
         
         <form id="adjustmentForm">
           <div class="form-group">
             <label class="form-label" for="adjustmentSku">Select Product:</label>
             <div class="search-container">
-              <input type="text" id="adjustmentSkuInput" name="adjustmentSku" class="form-input search-input" placeholder="Type to search products..." required>
+              <input type="text" id="adjustmentSkuInput" name="adjustmentSku" class="form-input search-input" placeholder="Loading products..." required>
               <button type="button" class="search-clear" onclick="clearAdjustmentSearch()">
                 <i class="icon icon-clear"></i>
               </button>
@@ -217,10 +204,22 @@
             <input type="hidden" id="adjustmentLocation" name="adjustmentLocation" required>
           </div>
           
+          <!-- Current Stock Display - positioned between location and new stock level -->
+          <div id="currentStockDisplay" class="current-stock-display" style="display: none;">
+            <div id="currentStockLoading" class="current-stock-loading" style="display: none;">
+              <div class="loading-spinner-small"></div>
+              <span>Loading current stock...</span>
+            </div>
+            <div id="currentStockContent" class="current-stock-content" style="display: none;">
+              <i class="icon icon-info icon-sm icon-margin-right"></i>
+              <span>Current stock: <strong id="currentStockValue">0</strong> at <strong id="currentStockLocation">Shop</strong></span>
+            </div>
+          </div>
+          
           <div class="form-group">
             <label class="form-label" for="adjustmentQuantity">New Stock Level:</label>
-            <input type="number" id="adjustmentQuantity" name="adjustmentQuantity" class="form-input" placeholder="Enter exact quantity (can be negative)" required>
-            <small class="form-help">Enter the exact quantity you want to set. Use negative numbers for corrections.</small>
+            <input type="number" id="adjustmentQuantity" name="adjustmentQuantity" class="form-input" placeholder="Enter exact quantity" min="0" required>
+            <small class="form-help">Enter the exact quantity you want to set.</small>
           </div>
           
           <div class="form-group">
@@ -255,28 +254,10 @@
             Sales - Record Product Sales
           </h3>
         </div>
-        <p>Use this form to record product sales. This will reduce stock from Shop location and update both Inventory and Sales snapshots.</p>
+        <p>Use this form to record multiple product sales at once.</p>
         
         <form id="salesForm">
-          <div class="form-group">
-            <label class="form-label" for="salesSku">Select Product:</label>
-            <div class="search-container">
-              <input type="text" id="salesSkuInput" name="salesSku" class="form-input search-input" placeholder="Type to search products..." required>
-              <button type="button" class="search-clear" onclick="clearSalesSearch()">
-                <i class="icon icon-clear"></i>
-              </button>
-              <div id="salesSearchResults" class="search-results"></div>
-            </div>
-            <div id="salesProductCount" class="search-info"></div>
-            <small class="form-help">Type to search products from Product Master sheet</small>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="salesQuantity">Quantity Sold:</label>
-            <input type="number" id="salesQuantity" name="salesQuantity" class="form-input" placeholder="Enter quantity sold" min="1" required>
-            <small class="form-help">This will reduce stock from Shop location</small>
-          </div>
-          
+          <!-- Batch-level fields -->
           <div class="form-group">
             <label class="form-label" for="salesUser">User Name:</label>
             <input type="text" id="salesUser" name="salesUser" class="form-input" placeholder="Enter your name" required>
@@ -286,22 +267,89 @@
             <label class="form-label" for="salesNotes">Sale Details (Optional):</label>
             <input type="text" id="salesNotes" name="salesNotes" class="form-input" placeholder="Customer info, payment method, special notes, etc.">
             <small class="form-help">Optional: Additional details about the sale</small>
+            <div class="sales-channel-buttons sales-channel-buttons-desktop">
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Shopee')">Shopee</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Lazada')">Lazada</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Tiktok')">Tiktok</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Live')">Live</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Website')">Website</button>
+            </div>
+            <div class="sales-channel-buttons sales-channel-buttons-mobile">
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Shopee')">Shopee</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Lazada')">Lazada</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Tiktok')">Tiktok</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Live')">Live</button>
+              <button type="button" class="btn btn-pill" onclick="fillSalesDetails('Website')">Website</button>
+            </div>
           </div>
           
+          <!-- Input row for adding records -->
+          <div class="form-group">
+            <label class="form-label">Add Sales Record:</label>
+            <div class="sales-input-row">
+              <div class="sales-input-group">
+                <label class="form-label-small" for="salesSkuInput">Product:</label>
+                <div class="search-container">
+                  <input type="text" id="salesSkuInput" name="salesSku" class="form-input search-input" placeholder="Loading products...">
+                  <button type="button" class="search-clear" onclick="clearSalesSearch()">
+                    <i class="icon icon-clear"></i>
+                  </button>
+                  <div id="salesSearchResults" class="search-results"></div>
+                </div>
+                <div id="salesProductCount" class="search-info"></div>
+              </div>
+              
+              <div class="sales-input-group">
+                <label class="form-label-small" for="salesQuantity">Quantity:</label>
+                <input type="number" id="salesQuantity" name="salesQuantity" class="form-input" placeholder="Qty" min="1">
+                <div class="search-info" style="visibility: hidden;">&nbsp;</div>
+              </div>
+              
+              <div class="sales-input-group">
+                <label class="form-label-small">&nbsp;</label>
+                <button type="button" id="addSalesRecordBtn" class="btn btn-primary" onclick="addSalesRecord()">
+                  <i class="icon icon-add icon-margin-right"></i>
+                  Add to Table
+                </button>
+                <div class="search-info" style="visibility: hidden;">&nbsp;</div>
+              </div>
+            </div>
+            <small class="form-help">Search for a product, enter quantity, then click "Add to Table"</small>
+          </div>
+          
+          <!-- Dynamic table for sales records -->
+          <div id="salesRecordsTable" class="sales-records-table" style="display: none;">
+            <h4 class="table-title">Sales Records to Submit</h4>
+            <table class="sales-table">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th class="product-name-column">Product Name</th>
+                  <th>Quantity</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="salesRecordsTableBody">
+                <!-- Dynamic rows will be added here -->
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Submit buttons -->
           <div class="btn-group">
-            <button type="submit" id="salesSubmitBtn" class="btn btn-success">
+            <button type="submit" id="salesSubmitBtn" class="btn btn-success" disabled>
               <i class="icon icon-check icon-margin-right"></i>
-              Submit Sale
+              Submit All Sales
             </button>
             <button type="button" class="btn btn-outline" onclick="clearSalesForm()">
               <i class="icon icon-clear icon-margin-right"></i>
-              Clear Form
+              Clear All
             </button>
           </div>
         </form>
       </div>
 
-      <!-- Results Display -->
+      <!-- Results Display (for auto-conversion to toasts) -->
       <div id="receivingResult"></div>
       
       <!-- Quick Inventory Check -->
@@ -331,11 +379,92 @@
     // Configuration
     const apiBase = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
 
+    // ====== Toast Notification System ======
+    
+    // Centralized toast function that automatically handles all message types
+    function showToast(type, title, message, duration = 5000) {
+      const toastContainer = document.getElementById('toastContainer');
+      
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      // Build a dedupe key from type+title+message
+      const key = `${type}|${title}|${message}`;
+      toast.setAttribute('data-toast-key', key);
+      
+      // If a toast with the same key already exists, reuse it (no duplicate)
+      const existing = toastContainer.querySelector(`.toast[data-toast-key="${CSS.escape(key)}"]`);
+      if (existing) {
+        return existing;
+      }
+      
+      // Get appropriate icon for type
+      let iconClass = 'icon-info';
+      switch(type) {
+        case 'success': iconClass = 'icon-check-circle'; break;
+        case 'error': iconClass = 'icon-error'; break;
+        case 'warning': iconClass = 'icon-warning'; break;
+        case 'info': iconClass = 'icon-info'; break;
+      }
+      
+      toast.innerHTML = `
+        <i class="icon ${iconClass} toast-icon"></i>
+        <div class="toast-content">
+          <span class="toast-message">${message}</span>
+        </div>
+      `;
+      
+      // Cap number of toasts to 3 (remove the oldest first)
+      while (toastContainer.children.length >= 3) {
+        toastContainer.removeChild(toastContainer.firstElementChild);
+      }
+      
+      // Add to container
+      toastContainer.appendChild(toast);
+      
+      // Trigger show animation
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      // Auto-hide after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          toast.classList.add('hide');
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 200);
+        }, duration);
+      }
+      
+      return toast;
+    }
+    
+    // Simple convenience functions that only show toasts (no result div updates)
+    function showSuccess(message, duration = 5000) {
+      return showToast('success', '', message, duration);
+    }
+    
+    function showError(message, duration = 5000) {
+      return showToast('error', '', message, duration);
+    }
+    
+    function showWarning(message, duration = 5000) {
+      return showToast('warning', '', message, duration);
+    }
+    
+    function showInfo(message, duration = 5000) {
+      return showToast('info', '', message, duration);
+    }
+    
+
+
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
       testConnection();
       setupReceivingForm();
-      loadProducts();
+      loadAllProducts(); // Load products once for all sections
       setupProductSearch();
       setupLocationButtons();
       setupTransferForm(); // Initialize transfer form
@@ -347,6 +476,8 @@
       setupSalesForm(); // Initialize sales form
       setupSalesProductSearch(); // Initialize sales product search
     });
+
+
 
     // ====== Connection Testing ======
     function testConnection() {
@@ -374,6 +505,7 @@
         .catch(error => {
           statusIndicator.className = 'status-indicator status-offline';
           statusText.textContent = 'Connection failed: ' + error.message;
+          showError(error.message, 5000);
           console.error('Connection test failed:', error);
         });
     }
@@ -382,33 +514,63 @@
     let allProducts = [];
 
     // ====== Products Loading ======
-    function loadProducts() {
-      const skuInput = document.getElementById('skuInput');
-      const productCountDiv = document.getElementById('productCount');
+    function loadAllProducts() {
+      // Get all search inputs and product count displays
+      const searchInputs = [
+        { input: document.getElementById('skuInput'), countDiv: document.getElementById('productCount') },
+        { input: document.getElementById('transferSkuInput'), countDiv: document.getElementById('transferProductCount') },
+        { input: document.getElementById('adjustmentSkuInput'), countDiv: document.getElementById('adjustmentProductCount') },
+        { input: document.getElementById('salesSkuInput'), countDiv: document.getElementById('salesProductCount') }
+      ];
       
-      skuInput.placeholder = 'Loading products...';
-      skuInput.disabled = true;
+      // Set all inputs to loading state
+      searchInputs.forEach(({ input, countDiv }) => {
+        if (input && countDiv) {
+          input.placeholder = 'Loading products...';
+          input.disabled = true;
+        }
+      });
       
+      // Single API call to get products
       fetch(apiBase + "?action=getProducts")
         .then(response => response.json())
         .then(data => {
           if (data.status === "success" && data.data && data.data.length > 0) {
             allProducts = data.data; // Store all products globally
-            skuInput.placeholder = `Type to search ${allProducts.length} products...`;
-            productCountDiv.textContent = `Loaded ${allProducts.length} products`;
+            
+            // Update all sections with success state
+            searchInputs.forEach(({ input, countDiv }) => {
+              if (input && countDiv) {
+                input.placeholder = 'Search by SKU or product name...';
+                countDiv.textContent = `Loaded ${allProducts.length} products`;
+                input.disabled = false;
+              }
+            });
+            
+            // success: keep silent to reduce notification noise
           } else {
-            skuInput.placeholder = 'No products available';
-            productCountDiv.textContent = 'No products available';
+            // Update all sections with no data state
+            searchInputs.forEach(({ input, countDiv }) => {
+              if (input && countDiv) {
+                input.placeholder = 'No products available';
+                countDiv.textContent = 'No products available';
+                input.disabled = false;
+              }
+            });
             console.error('Failed to load products:', data.message || 'Unknown error');
           }
         })
         .catch(error => {
-          skuInput.placeholder = 'Error loading products';
-          productCountDiv.textContent = 'Error loading products';
+          // Update all sections with error state
+          searchInputs.forEach(({ input, countDiv }) => {
+            if (input && countDiv) {
+              input.placeholder = 'Error loading products';
+              countDiv.textContent = 'Error loading products';
+              input.disabled = false;
+            }
+          });
+          showError('Failed to load products. Please refresh the page.', 5000);
           console.error('Failed to load products:', error);
-        })
-        .finally(() => {
-          skuInput.disabled = false;
         });
     }
 
@@ -864,10 +1026,8 @@
     }
 
     function submitReceiving(data) {
-      const resultDiv = document.getElementById('receivingResult');
       const submitBtn = document.getElementById('submitBtn');
       
-      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing receiving...</div>';
       submitBtn.disabled = true;
       
       const params = new URLSearchParams({
@@ -881,21 +1041,9 @@
       .then(response => response.json())
       .then(result => {
         if (result.status === 'success') {
-          resultDiv.innerHTML = `
-            <div class="alert alert-success">
-              <i class="icon icon-check icon-margin-right"></i>
-              <div class="alert-enhanced-content">
-                <div class="alert-enhanced-title">Receiving Successful!</div>
-                <div class="alert-enhanced-message">
-                  SKU: ${data.sku}<br>
-                  Quantity: ${data.quantity}<br>
-                  Location: ${data.destination}<br>
-                  User: ${data.user}<br>
-                  <small>Inventory updated automatically</small>
-                </div>
-              </div>
-            </div>
-          `;
+          showSuccess(
+            `Received ${data.quantity} ${data.sku.split('-')[0]}... at ${data.destination}`
+          );
           clearReceivingForm();
           loadSnapshot(); // Refresh inventory display
         } else {
@@ -903,18 +1051,10 @@
         }
       })
       .catch(error => {
-        resultDiv.innerHTML = `
-          <div class="alert alert-error">
-            <i class="icon icon-error icon-margin-right"></i>
-            <div class="alert-enhanced-content">
-              <div class="alert-enhanced-title">Error</div>
-              <div class="alert-enhanced-message">
-                ${error.message}<br>
-                <small>Please try again or contact support if the problem persists.</small>
-              </div>
-            </div>
-          </div>
-        `;
+        showError(
+          'Error',
+          `${error.message}<br><small>Please try again or contact support if the problem persists.</small>`
+        );
         console.error('Receiving submission failed:', error);
       })
       .finally(() => {
@@ -929,6 +1069,8 @@
       const shopBtn = document.getElementById('shopBtn');
       const warehouseBtn = document.getElementById('warehouseBtn');
       selectLocation('Shop', shopBtn, warehouseBtn);
+      
+      // silent
     }
 
     // ====== Inventory Snapshot ======
@@ -947,6 +1089,7 @@
         })
         .catch(error => {
           tableDiv.innerHTML = `<div class="alert alert-error"><i class="icon icon-error icon-margin-right"></i>Error loading inventory: ${error.message}</div>`;
+          showError(`Failed to load inventory: ${error.message}`);
           console.error('Failed to load snapshot:', error);
         });
     }
@@ -987,6 +1130,8 @@
 
     function clearSnapshot() {
       document.getElementById('snapshotTable').innerHTML = '';
+      
+      // silent
     }
 
     // ====== Transfer Form Setup ======
@@ -1013,10 +1158,8 @@
     }
 
     function submitTransfer(data) {
-      const resultDiv = document.getElementById('receivingResult'); // Reusing receivingResult for transfer display
       const transferSubmitBtn = document.getElementById('transferSubmitBtn');
       
-      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing transfer...</div>';
       transferSubmitBtn.disabled = true;
       
       const params = new URLSearchParams({
@@ -1030,22 +1173,9 @@
       .then(response => response.json())
       .then(result => {
         if (result.status === 'success') {
-          resultDiv.innerHTML = `
-            <div class="alert alert-success">
-              <i class="icon icon-check icon-margin-right"></i>
-              <div class="alert-enhanced-content">
-                <div class="alert-enhanced-title">Transfer Successful!</div>
-                <div class="alert-enhanced-message">
-                  SKU: ${data.sku}<br>
-                  Quantity: ${data.quantity}<br>
-                  From: ${data.source}<br>
-                  To: ${data.destination}<br>
-                  User: ${data.user}<br>
-                  <small>Inventory updated automatically</small>
-                </div>
-              </div>
-            </div>
-          `;
+          showSuccess(
+            `Moved ${data.quantity} ${data.sku.split('-')[0]}... to ${data.destination}`
+          );
           clearTransferForm();
           loadSnapshot(); // Refresh inventory display
         } else {
@@ -1053,18 +1183,10 @@
         }
       })
       .catch(error => {
-        resultDiv.innerHTML = `
-          <div class="alert alert-error">
-            <i class="icon icon-error icon-margin-right"></i>
-            <div class="alert-enhanced-content">
-              <div class="alert-enhanced-title">Error</div>
-              <div class="alert-enhanced-message">
-                ${error.message}<br>
-                <small>Please try again or contact support if the problem persists.</small>
-              </div>
-            </div>
-          </div>
-        `;
+        showError(
+          'Error',
+          `${error.message}<br><small>Please try again or contact support if the problem persists.</small>`
+        );
         console.error('Transfer submission failed:', error);
       })
       .finally(() => {
@@ -1083,6 +1205,8 @@
       // Clear direction display
       const transferDirectionDiv = document.getElementById('transferDirection');
       transferDirectionDiv.textContent = 'From: Shop → To: Warehouse';
+      
+      // silent
     }
 
     function showTransferSearchResults(products, searchTerm, minScore = 0, totalMatches = 0, totalProducts = 0) {
@@ -1395,10 +1519,8 @@
     }
 
     function submitAdjustment(data) {
-      const resultDiv = document.getElementById('receivingResult'); // Reusing receivingResult for adjustment display
       const adjustmentSubmitBtn = document.getElementById('adjustmentSubmitBtn');
       
-      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing adjustment...</div>';
       adjustmentSubmitBtn.disabled = true;
       
       const params = new URLSearchParams({
@@ -1412,21 +1534,9 @@
       .then(response => response.json())
       .then(result => {
         if (result.status === 'success') {
-          resultDiv.innerHTML = `
-            <div class="alert alert-success">
-              <i class="icon icon-check icon-margin-right"></i>
-              <div class="alert-enhanced-content">
-                <div class="alert-enhanced-title">Adjustment Successful!</div>
-                <div class="alert-enhanced-message">
-                  SKU: ${data.sku}<br>
-                  Quantity: ${data.quantity}<br>
-                  Location: ${data.source}<br>
-                  User: ${data.user}<br>
-                  <small>Inventory updated automatically</small>
-                </div>
-              </div>
-            </div>
-          `;
+          showSuccess(
+            `Set ${data.quantity} ${data.sku.split('-')[0]}... at ${data.source}`
+          );
           clearAdjustmentForm();
           loadSnapshot(); // Refresh inventory display
         } else {
@@ -1434,18 +1544,10 @@
         }
       })
       .catch(error => {
-        resultDiv.innerHTML = `
-          <div class="alert alert-error">
-            <i class="icon icon-error icon-margin-right"></i>
-            <div class="alert-enhanced-content">
-              <div class="alert-enhanced-title">Error</div>
-              <div class="alert-enhanced-message">
-                ${error.message}<br>
-                <small>Please try again or contact support if the problem persists.</small>
-              </div>
-            </div>
-          </div>
-        `;
+        showError(
+          'Error',
+          `${error.message}<br><small>Please try again or contact support if the problem persists.</small>`
+        );
         console.error('Adjustment submission failed:', error);
       })
       .finally(() => {
@@ -1460,6 +1562,17 @@
       const adjustmentShopBtn = document.getElementById('adjustmentShopBtn');
       const adjustmentWarehouseBtn = document.getElementById('adjustmentWarehouseBtn');
       selectAdjustmentLocation('Shop', adjustmentShopBtn, adjustmentWarehouseBtn);
+      
+      // Hide current stock display and all its states
+      const currentStockDisplay = document.getElementById('currentStockDisplay');
+      const currentStockLoading = document.getElementById('currentStockLoading');
+      const currentStockContent = document.getElementById('currentStockContent');
+      
+      currentStockDisplay.style.display = 'none';
+      currentStockLoading.style.display = 'none';
+      currentStockContent.style.display = 'none';
+      
+      // silent
     }
 
     function setupAdjustmentProductSearch() {
@@ -1596,12 +1709,83 @@
       adjustmentSkuInput.value = product.sku;
       adjustmentSearchResults.style.display = 'none';
       
+      // Check if we have both SKU and location to show current stock
+      checkAndShowCurrentStock();
+      
       console.log(`Selected adjustment product: ${product.sku} - ${product.displayName}`);
     }
 
     function hideAdjustmentSearchResults() {
       const adjustmentSearchResults = document.getElementById('adjustmentSearchResults');
       adjustmentSearchResults.style.display = 'none';
+    }
+
+    // Function to check and show current stock for adjustment
+    function checkAndShowCurrentStock() {
+      const sku = document.getElementById('adjustmentSkuInput').value;
+      const location = document.getElementById('adjustmentLocation').value;
+      const currentStockDisplay = document.getElementById('currentStockDisplay');
+      const currentStockLoading = document.getElementById('currentStockLoading');
+      const currentStockContent = document.getElementById('currentStockContent');
+      const currentStockValue = document.getElementById('currentStockValue');
+      const currentStockLocation = document.getElementById('currentStockLocation');
+      
+      if (sku && location) {
+        // Update location display
+        currentStockLocation.textContent = location;
+        
+        // Show loading state
+        currentStockDisplay.style.display = 'block';
+        currentStockLoading.style.display = 'flex';
+        currentStockContent.style.display = 'none';
+        
+        // Fetch current inventory to get stock level
+        fetch(apiBase + "?action=getInventorySnapshot")
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === "success" && data.data && data.data.length > 1) {
+              const headers = data.data[0];
+              const rows = data.data.slice(1);
+              
+              // Find the SKU and location columns
+              const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+              const locationIndex = headers.findIndex(h => h.toLowerCase().includes('location'));
+              const quantityIndex = headers.findIndex(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('stock'));
+              
+              if (skuIndex !== -1 && locationIndex !== -1 && quantityIndex !== -1) {
+                // Find the row with matching SKU and location
+                const matchingRow = rows.find(row => 
+                  row[skuIndex] === sku && row[locationIndex] === location
+                );
+                
+                if (matchingRow) {
+                  const currentStock = matchingRow[quantityIndex] || 0;
+                  currentStockValue.textContent = currentStock;
+                } else {
+                  currentStockValue.textContent = '0';
+                }
+              } else {
+                currentStockValue.textContent = 'N/A';
+              }
+              
+              // Hide loading, show content
+              currentStockLoading.style.display = 'none';
+              currentStockContent.style.display = 'flex';
+            } else {
+              currentStockValue.textContent = 'N/A';
+              currentStockLoading.style.display = 'none';
+              currentStockContent.style.display = 'flex';
+            }
+          })
+          .catch(error => {
+            console.error('Failed to fetch current stock:', error);
+            currentStockValue.textContent = 'N/A';
+            currentStockLoading.style.display = 'none';
+            currentStockContent.style.display = 'flex';
+          });
+      } else {
+        currentStockDisplay.style.display = 'none';
+      }
     }
 
     function setupAdjustmentLocationButtons() {
@@ -1627,6 +1811,9 @@
       selectedBtn.classList.add('active');
       otherBtn.classList.remove('active');
       
+      // Check if we have both SKU and location to show current stock
+      checkAndShowCurrentStock();
+      
       console.log(`Selected adjustment location: ${location}`);
     }
 
@@ -1636,33 +1823,16 @@
       salesForm.addEventListener('submit', handleSalesSubmit);
     }
 
-    function handleSalesSubmit(e) {
-      e.preventDefault();
-      
-      const formData = new FormData(e.target);
-      const data = {
-        sku: formData.get('salesSku'),
-        quantity: parseInt(formData.get('salesQuantity')),
-        mode: 'SALE',
-        source: 'Shop', // Sales reduce stock from Shop location
-        destination: 'Customer', // Sales go to customers
-        user: formData.get('salesUser'),
-        notes: formData.get('salesNotes') || ''
-      };
 
-      submitSales(data);
-    }
 
-    function submitSales(data) {
-      const resultDiv = document.getElementById('receivingResult'); // Reusing receivingResult for sales display
+    function submitBulkSales(bulkData) {
       const salesSubmitBtn = document.getElementById('salesSubmitBtn');
       
-      resultDiv.innerHTML = '<div class="loading-enhanced"><div class="loading-spinner"></div>Processing sale...</div>';
       salesSubmitBtn.disabled = true;
       
       const params = new URLSearchParams({
         action: 'addInventoryLog',
-        data: JSON.stringify([data])
+        data: JSON.stringify(bulkData)
       });
 
       fetch(apiBase + '?' + params.toString(), {
@@ -1671,21 +1841,10 @@
       .then(response => response.json())
       .then(result => {
         if (result.status === 'success') {
-          resultDiv.innerHTML = `
-            <div class="alert alert-success">
-              <i class="icon icon-check icon-margin-right"></i>
-              <div class="alert-enhanced-content">
-                <div class="alert-enhanced-title">Sale Recorded Successfully!</div>
-                <div class="alert-enhanced-message">
-                  SKU: ${data.sku}<br>
-                  Quantity Sold: ${data.quantity}<br>
-                  Location: ${data.source}<br>
-                  User: ${data.user}<br>
-                  <small>Inventory and Sales snapshots updated automatically</small>
-                </div>
-              </div>
-            </div>
-          `;
+          showSuccess(
+            'Bulk Sales Submitted Successfully!',
+            `Total Records: ${bulkData.length}<br>User: ${bulkData[0].user}<br><small>All inventory and sales snapshots updated automatically</small>`
+          );
           clearSalesForm();
           loadSnapshot(); // Refresh inventory display
         } else {
@@ -1693,19 +1852,11 @@
         }
       })
       .catch(error => {
-        resultDiv.innerHTML = `
-          <div class="alert alert-error">
-            <i class="icon icon-error icon-margin-right"></i>
-            <div class="alert-enhanced-content">
-              <div class="alert-enhanced-title">Error</div>
-              <div class="alert-enhanced-message">
-                ${error.message}<br>
-                <small>Please try again or contact support if the problem persists.</small>
-              </div>
-            </div>
-          </div>
-        `;
-        console.error('Sales submission failed:', error);
+        showError(
+          'Error',
+          `${error.message}<br><small>Please try again or contact support if the problem persists.</small>`
+        );
+        console.error('Bulk sales submission failed:', error);
       })
       .finally(() => {
         salesSubmitBtn.disabled = false;
@@ -1933,6 +2084,220 @@
     function hideSalesSearchResults() {
       const salesSearchResults = document.getElementById('salesSearchResults');
       salesSearchResults.style.display = 'none';
+    }
+
+    // ====== Sales Channel Buttons ======
+    function fillSalesDetails(channel) {
+      const salesNotesInput = document.getElementById('salesNotes');
+      const currentValue = salesNotesInput.value.trim();
+      
+      // If there's already content, append the channel with a separator
+      if (currentValue) {
+        salesNotesInput.value = currentValue + ' | ' + channel;
+      } else {
+        salesNotesInput.value = channel;
+      }
+      
+      // Focus the input for easy editing
+      salesNotesInput.focus();
+      
+      // silent
+      
+      console.log(`Filled sales details with channel: ${channel}`);
+    }
+
+    // ====== Sales Records Table Management ======
+    let salesRecords = []; // Global array to store sales records
+
+    function addSalesRecord() {
+      const skuInput = document.getElementById('salesSkuInput');
+      const quantityInput = document.getElementById('salesQuantity');
+      const sku = skuInput.value.trim();
+      const quantity = parseInt(quantityInput.value);
+      
+      // Validation
+      if (!sku) {
+        alert('Please select a product');
+        return;
+      }
+      
+      if (!quantity || quantity <= 0) {
+        alert('Please enter a valid quantity');
+        return;
+      }
+      
+      // Check if SKU already exists in table
+      if (salesRecords.some(record => record.sku === sku)) {
+        alert('This product is already in the table. Please use a different product or adjust the existing quantity.');
+        return;
+      }
+      
+      // Find product details from allProducts
+      const product = allProducts.find(p => p.sku === sku);
+      if (!product) {
+        alert('Product not found');
+        return;
+      }
+      
+      // Add to records array
+      const newRecord = {
+        sku: sku,
+        productName: product.displayName,
+        quantity: quantity
+      };
+      
+      salesRecords.push(newRecord);
+      
+      // Update table display
+      updateSalesRecordsTable();
+      
+      // Clear input fields
+      skuInput.value = '';
+      quantityInput.value = '';
+      hideSalesSearchResults();
+      
+      // Focus back to SKU input for next entry
+      skuInput.focus();
+      
+      // silent
+      
+      console.log(`Added sales record: ${sku} - ${quantity}`);
+    }
+
+    function removeSalesRecord(index) {
+      const removedRecord = salesRecords[index];
+      salesRecords.splice(index, 1);
+      updateSalesRecordsTable();
+      
+      // Show success toast
+      showInfo('Removed', `${removedRecord.productName} removed from sales table`, 2000);
+      
+      console.log(`Removed sales record at index ${index}`);
+    }
+
+    function updateSalesRecordsTable() {
+      const tableContainer = document.getElementById('salesRecordsTable');
+      const tableBody = document.getElementById('salesRecordsTableBody');
+      const submitBtn = document.getElementById('salesSubmitBtn');
+      
+      if (salesRecords.length === 0) {
+        // Hide table when empty
+        tableContainer.style.display = 'none';
+        submitBtn.disabled = true;
+        return;
+      }
+      
+      // Show table and enable submit button
+      tableContainer.style.display = 'block';
+      submitBtn.disabled = false;
+      
+      // Clear existing rows
+      tableBody.innerHTML = '';
+      
+      // Add new rows
+      salesRecords.forEach((record, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="sku-column">${record.sku}</td>
+          <td class="product-name-column">
+            <div class="product-name">${record.productName}</div>
+          </td>
+          <td class="quantity-column">${record.quantity}</td>
+          <td class="actions-column">
+            <button type="button" class="delete-record-btn" onclick="removeSalesRecord(${index})" title="Remove this record">
+              <i class="icon icon-delete"></i>
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function clearSalesForm() {
+      // Clear batch fields
+      document.getElementById('salesUser').value = '';
+      document.getElementById('salesNotes').value = '';
+      
+      // Clear input fields
+      document.getElementById('salesSkuInput').value = '';
+      document.getElementById('salesQuantity').value = '';
+      hideSalesSearchResults();
+      
+      // Clear table
+      salesRecords = [];
+      updateSalesRecordsTable();
+      
+      // silent
+      
+      console.log('Sales form cleared');
+    }
+
+    // Override the existing handleSalesSubmit function
+    function handleSalesSubmit(e) {
+      e.preventDefault();
+      
+      if (salesRecords.length === 0) {
+        alert('Please add at least one sales record before submitting');
+        return;
+      }
+      
+      const user = document.getElementById('salesUser').value.trim();
+      const notes = document.getElementById('salesNotes').value.trim();
+      
+      if (!user) {
+        alert('Please enter your name');
+        return;
+      }
+      
+      // Prepare bulk data
+      const bulkData = salesRecords.map(record => ({
+        sku: record.sku,
+        quantity: record.quantity,
+        mode: 'SALE',
+        source: 'Shop',
+        destination: 'Customer',
+        user: user,
+        notes: notes || ''
+      }));
+      
+      console.log('Submitting bulk sales data:', bulkData);
+      submitBulkSales(bulkData);
+    }
+
+    function submitBulkSales(bulkData) {
+      const salesSubmitBtn = document.getElementById('salesSubmitBtn');
+      salesSubmitBtn.disabled = true;
+      
+      const params = new URLSearchParams({
+        action: 'addInventoryLog',
+        data: JSON.stringify(bulkData)
+      });
+
+      fetch(apiBase + '?' + params.toString(), {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === 'success') {
+          showSuccess(
+            `${bulkData.length} sales recorded`
+          );
+          clearSalesForm();
+          loadSnapshot(); // Refresh inventory display
+        } else {
+          throw new Error(result.message || 'Unknown error occurred');
+        }
+      })
+      .catch(error => {
+        showError(
+          'Error',
+          error.message
+        );
+        console.error('Bulk sales submission failed:', error);
+      })
+      .finally(() => {
+        salesSubmitBtn.disabled = false;
+      });
     }
   </script>
 </body>
