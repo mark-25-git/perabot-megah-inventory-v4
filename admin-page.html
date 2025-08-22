@@ -13,7 +13,6 @@
   <div class="container">
     <header class="page-header">
       <h1 class="page-title">
-        <i class="icon icon-inventory icon-margin-right"></i>
         Perabot Megah - Admin Panel
       </h1>
     </header>
@@ -370,6 +369,9 @@
             </button>
           </div>
         </div>
+        <p class="form-section-description">
+          Showing max 10 results. Full inventory available in dashboard.
+        </p>
         <div id="snapshotTable"></div>
       </div>
     </main>
@@ -1105,27 +1107,109 @@
       const headers = data[0];
       const rows = data.slice(1);
       
-      let html = '<table class="w-full" style="border-collapse: collapse; margin-top: var(--spacing-md);">';
+      // Find column indices for special handling - check multiple possible ID column names
+      const possibleIdColumns = ['snapshotid', 'snapshot id', 'id', 'snapshot_id', 'snapshot-id'];
+      const snapshotIdIndex = headers.findIndex(h => 
+        possibleIdColumns.some(idCol => h.toLowerCase().includes(idCol))
+      );
+      
+      // Check for LastUpdated column with multiple variations
+      const lastUpdatedIndex = headers.findIndex(h => {
+        const headerLower = h.toLowerCase();
+        return headerLower.includes('lastupdated') || 
+               headerLower.includes('last updated') || 
+               headerLower.includes('last_updated') ||
+               headerLower.includes('last-updated') ||
+               headerLower.includes('updated') ||
+               headerLower.includes('timestamp');
+      });
+      
+      // Filter out snapshot ID column and create new headers/rows
+      let filteredHeaders, filteredRows;
+      if (snapshotIdIndex !== -1) {
+        filteredHeaders = headers.filter((_, index) => index !== snapshotIdIndex);
+        filteredRows = rows.map(row => row.filter((_, index) => index !== snapshotIdIndex));
+      } else {
+        filteredHeaders = headers;
+        filteredRows = rows;
+      }
+      
+      // Calculate the NEW index for LastUpdated in the filtered data
+      let filteredLastUpdatedIndex = -1;
+      if (lastUpdatedIndex !== -1) {
+        if (snapshotIdIndex !== -1 && snapshotIdIndex < lastUpdatedIndex) {
+          // If we removed a column before LastUpdated, adjust the index
+          filteredLastUpdatedIndex = lastUpdatedIndex - 1;
+        } else if (snapshotIdIndex !== -1 && snapshotIdIndex > lastUpdatedIndex) {
+          // If we removed a column after LastUpdated, index stays the same
+          filteredLastUpdatedIndex = lastUpdatedIndex;
+        } else {
+          // No column removed, index stays the same
+          filteredLastUpdatedIndex = lastUpdatedIndex;
+        }
+      }
+      
+      let html = '<div class="inventory-table-container">';
+      html += '<table class="inventory-table">';
       
       // Headers
       html += '<thead><tr>';
-      headers.forEach(header => {
-        html += `<th style="border: 1px solid var(--color-border-light); padding: var(--spacing-md); background-color: var(--color-bg-tertiary); text-align: left; font-weight: var(--font-weight-semibold);">${header}</th>`;
+      filteredHeaders.forEach(header => {
+        html += `<th>${header}</th>`;
       });
       html += '</tr></thead>';
       
       // Rows
       html += '<tbody>';
-      rows.forEach(row => {
+      
+      // Limit to latest 10 rows
+      const limitedRows = filteredRows.slice(-10);
+      
+      limitedRows.forEach((row, rowIndex) => {
         html += '<tr>';
-        row.forEach(cell => {
-          html += `<td style="border: 1px solid var(--color-border-light); padding: var(--spacing-md);">${cell}</td>`;
+        
+        row.forEach((cell, index) => {
+          // Format LastUpdated column if it exists using the CORRECTED index
+          let displayCell = cell;
+          if (index === filteredLastUpdatedIndex && filteredLastUpdatedIndex !== -1) {
+            displayCell = formatLastUpdated(cell);
+          }
+          html += `<td>${displayCell}</td>`;
         });
         html += '</tr>';
       });
       html += '</tbody></table>';
+      html += '</div>';
       
       tableDiv.innerHTML = html;
+    }
+
+    function formatLastUpdated(timestamp) {
+      if (!timestamp) {
+        return 'N/A';
+      }
+      
+      try {
+        const date = new Date(timestamp);
+        
+        if (isNaN(date.getTime())) {
+          return timestamp; // Return original if invalid date
+        }
+        
+        // Format: "Aug 21, 2025 at 12:15 PM"
+        const options = {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        };
+        
+        return date.toLocaleDateString('en-US', options);
+      } catch (error) {
+        return timestamp; // Return original if formatting fails
+      }
     }
 
     function clearSnapshot() {
