@@ -6,11 +6,19 @@
   <title>Perabot Megah - Admin Panel</title>
   <link rel="stylesheet" href="css/main.css">
 </head>
-<body>
+<body data-theme="dark">
   <!-- Toast Container for Floating Notifications -->
   <div id="toastContainer" class="toast-container"></div>
   
   <div class="container">
+    <!-- Theme Toggle Button - Outside Header -->
+    <div class="theme-toggle-container">
+      <button id="themeToggle" class="btn btn-outline btn-sm theme-toggle" onclick="toggleTheme()">
+        <i class="icon icon-lightbulb" id="themeIcon"></i>
+        <span id="themeText">Light Mode</span>
+      </button>
+    </div>
+    
     <header class="page-header">
       <h1 class="page-title">
         Perabot Megah - Admin Panel
@@ -475,6 +483,7 @@
 
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
+      initializeTheme(); // Initialize theme first
       testConnection();
       setupReceivingForm();
       loadAllProducts(); // Load products once for all sections
@@ -2499,6 +2508,50 @@
       });
       
       expandedSection = null;
+    }
+    
+    // ====== Theme Toggle System ======
+    
+    // Toggle between light and dark themes
+    function toggleTheme() {
+      const body = document.body;
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      
+      if (body.getAttribute('data-theme') === 'dark') {
+        // Switch to light theme
+        body.setAttribute('data-theme', 'light');
+        themeIcon.className = 'icon icon-dark-mode';
+        themeText.textContent = 'Dark Mode';
+        localStorage.setItem('theme', 'light');
+        showInfo('Switched to Light Mode');
+      } else {
+        // Switch to dark theme
+        body.setAttribute('data-theme', 'dark');
+        themeIcon.className = 'icon icon-lightbulb';
+        themeText.textContent = 'Light Mode';
+        localStorage.setItem('theme', 'dark');
+        showInfo('Switched to Dark Mode');
+      }
+    }
+    
+    // Initialize theme from localStorage or default to dark
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      const body = document.body;
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      
+      body.setAttribute('data-theme', savedTheme);
+      
+      if (savedTheme === 'light') {
+        themeIcon.className = 'icon icon-dark-mode';
+        themeText.textContent = 'Dark Mode';
+      } else {
+        themeIcon.className = 'icon icon-lightbulb';
+        themeText.textContent = 'Light Mode';
+      }
     }
   </script>
 </body>

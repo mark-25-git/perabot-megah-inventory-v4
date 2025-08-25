@@ -98,6 +98,8 @@
 .icon-bell::before { content: '\e7f4'; }           /* Bell */
 .icon-star::before { content: '\e838'; }           /* Star */
 .icon-heart::before { content: '\e87d'; }          /* Heart */
+.icon-lightbulb::before { content: '\e90f'; }      /* Lightbulb/Light Mode */
+.icon-dark-mode::before { content: '\e51c'; }      /* Dark Mode/Night Mode */
 .icon-bookmark::before { content: '\e866'; }       /* Bookmark */
 .icon-share::before { content: '\e80d'; }          /* Share */
 .icon-copy::before { content: '\e14d'; }           /* Copy */
