@@ -28,17 +28,18 @@
       </div>
 
       <!-- Receiving Form -->
-      <div class="form-section">
-        <div class="form-section-header">
+      <div class="form-section collapsible-section section-collapsed" id="receivingSection">
+        <div class="section-header" onclick="toggleSection('receivingSection')">
           <h3 class="form-section-title">
             <i class="icon icon-add icon-margin-right"></i>
             Receiving - Add New Stock
           </h3>
-          
+          <i class="icon icon-chevron-down chevron-icon"></i>
         </div>
-        <p>Use this form to record new inventory received from suppliers.</p>
-        
-        <form id="receivingForm">
+        <div class="section-content">
+          <p>Use this form to record new inventory received from suppliers.</p>
+          
+          <form id="receivingForm">
           <div class="form-group">
             <label class="form-label" for="sku">Select Product:</label>
             <div class="search-container">
@@ -93,19 +94,22 @@
             </button>
           </div>
         </form>
+        </div>
       </div>
 
       <!-- Transfer Form -->
-      <div class="form-section">
-        <div class="form-section-header">
+      <div class="form-section collapsible-section section-collapsed" id="transferSection">
+        <div class="section-header" onclick="toggleSection('transferSection')">
           <h3 class="form-section-title">
             <i class="icon icon-swap-horiz icon-margin-right"></i>
             Transfer - Move Stock Between Locations
           </h3>
+          <i class="icon icon-chevron-down chevron-icon"></i>
         </div>
-        <p>Use this form to move inventory between Shop and Warehouse locations.</p>
-        
-        <form id="transferForm">
+        <div class="section-content">
+          <p>Use this form to move inventory between Shop and Warehouse locations.</p>
+          
+          <form id="transferForm">
           <div class="form-group">
             <label class="form-label" for="transferSku">Select Product:</label>
             <div class="search-container">
@@ -162,19 +166,22 @@
             </button>
           </div>
         </form>
+        </div>
       </div>
 
       <!-- Adjustment Form -->
-      <div class="form-section">
-        <div class="form-section-header">
+      <div class="form-section collapsible-section section-collapsed" id="adjustmentSection">
+        <div class="section-header" onclick="toggleSection('adjustmentSection')">
           <h3 class="form-section-title">
             <i class="icon icon-adjust icon-margin-right"></i>
             Adjustment - Set Exact Stock Levels
           </h3>
+          <i class="icon icon-chevron-down chevron-icon"></i>
         </div>
-        <p>Use this form to correct inventory levels, set exact quantities, or handle stock corrections.</p>
-        
-        <form id="adjustmentForm">
+        <div class="section-content">
+          <p>Use this form to correct inventory levels, set exact quantities, or handle stock corrections.</p>
+          
+          <form id="adjustmentForm">
           <div class="form-group">
             <label class="form-label" for="adjustmentSku">Select Product:</label>
             <div class="search-container">
@@ -243,19 +250,22 @@
             </button>
           </div>
         </form>
+        </div>
       </div>
 
       <!-- Sales Form -->
-      <div class="form-section">
-        <div class="form-section-header">
+      <div class="form-section collapsible-section section-collapsed" id="salesSection">
+        <div class="section-header" onclick="toggleSection('salesSection')">
           <h3 class="form-section-title">
             <i class="icon icon-remove icon-margin-right"></i>
             Sales - Record Product Sales
           </h3>
+          <i class="icon icon-chevron-down chevron-icon"></i>
         </div>
-        <p>Use this form to record multiple product sales at once.</p>
-        
-        <form id="salesForm">
+        <div class="section-content">
+          <p>Use this form to record multiple product sales at once.</p>
+          
+          <form id="salesForm">
           <!-- Batch-level fields -->
           <div class="form-group">
             <label class="form-label" for="salesUser">User Name:</label>
@@ -346,6 +356,7 @@
             </button>
           </div>
         </form>
+        </div>
       </div>
 
       <!-- Results Display (for auto-conversion to toasts) -->
@@ -477,6 +488,7 @@
       setupAdjustmentLocationButtons(); // Initialize adjustment location buttons
       setupSalesForm(); // Initialize sales form
       setupSalesProductSearch(); // Initialize sales product search
+      setupCollapsibleSections(); // Initialize collapsible sections
     });
 
 
@@ -2382,6 +2394,111 @@
       .finally(() => {
         salesSubmitBtn.disabled = false;
       });
+    }
+
+    // ====== Collapsible Sections Functionality ======
+    
+    // Track which section is currently expanded
+    let expandedSection = null;
+    
+    // Initialize collapsible sections
+    function setupCollapsibleSections() {
+      // Start with all sections collapsed by default
+      const sections = document.querySelectorAll('.collapsible-section');
+      sections.forEach(section => {
+        section.classList.add('section-collapsed');
+        const content = section.querySelector('.section-content');
+        if (content) {
+          content.style.display = 'none';
+        }
+      });
+      
+      // All sections start collapsed - no default expansion
+      expandedSection = null;
+    }
+    
+    // Toggle section expand/collapse
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (!section) return;
+      
+      if (section.classList.contains('section-expanded')) {
+        collapseSection(sectionId);
+      } else {
+        expandSection(sectionId);
+      }
+    }
+    
+    // Expand a specific section and collapse others
+    function expandSection(sectionId) {
+      // First collapse all sections
+      collapseAllSections();
+      
+      // Then expand the target section
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.remove('section-collapsed');
+        section.classList.add('section-expanded');
+        
+        const content = section.querySelector('.section-content');
+        if (content) {
+          content.style.display = 'block';
+        }
+        
+        // Update chevron icon
+        const chevron = section.querySelector('.chevron-icon');
+        if (chevron) {
+          chevron.className = 'icon icon-chevron-up chevron-icon';
+        }
+        
+        expandedSection = sectionId;
+      }
+    }
+    
+    // Collapse a specific section
+    function collapseSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.remove('section-expanded');
+        section.classList.add('section-collapsed');
+        
+        const content = section.querySelector('.section-content');
+        if (content) {
+          content.style.display = 'none';
+        }
+        
+        // Update chevron icon
+        const chevron = section.querySelector('.chevron-icon');
+        if (chevron) {
+          chevron.className = 'icon icon-chevron-down chevron-icon';
+        }
+        
+        if (expandedSection === sectionId) {
+          expandedSection = null;
+        }
+      }
+    }
+    
+    // Collapse all sections
+    function collapseAllSections() {
+      const sections = document.querySelectorAll('.collapsible-section');
+      sections.forEach(section => {
+        section.classList.remove('section-expanded');
+        section.classList.add('section-collapsed');
+        
+        const content = section.querySelector('.section-content');
+        if (content) {
+          content.style.display = 'none';
+        }
+        
+        // Update chevron icon
+        const chevron = section.querySelector('.chevron-icon');
+        if (chevron) {
+          chevron.className = 'icon icon-chevron-down chevron-icon';
+        }
+      });
+      
+      expandedSection = null;
     }
   </script>
 </body>

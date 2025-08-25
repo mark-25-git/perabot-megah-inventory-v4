@@ -1069,5 +1069,113 @@
 }
 
 /* ========================================
+   COLLAPSIBLE SECTIONS
+   ======================================== */
+
+/* Collapsible Section Container */
+.collapsible-section {
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-primary);
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+}
+
+.collapsible-section:hover {
+  border-color: var(--color-border-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-light);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.section-header:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.section-header:active {
+  background-color: var(--color-bg-tertiary);
+}
+
+.section-header .form-section-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Chevron Icon */
+.chevron-icon {
+  color: var(--color-text-secondary);
+  transition: all 0.3s ease-in-out;
+  font-size: var(--text-lg);
+}
+
+/* Section Content */
+.section-content {
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-primary);
+  transition: all 0.3s ease-in-out;
+}
+
+.section-content p {
+  margin-top: 0;
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-text-secondary);
+}
+
+/* Section States */
+.section-collapsed .section-content {
+  display: none;
+}
+
+.section-expanded .section-content {
+  display: block;
+}
+
+/* Responsive Design for Collapsible Sections */
+@media (max-width: 768px) {
+  .section-header {
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .section-content {
+    padding: var(--spacing-md);
+  }
+  
+  .section-header .form-section-title {
+    font-size: var(--text-lg);
+  }
+  
+  .chevron-icon {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 480px) {
+  .section-header {
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .section-content {
+    padding: var(--spacing-sm);
+  }
+  
+  .section-header .form-section-title {
+    font-size: var(--text-base);
+  }
+}
+
+/* ========================================
    END OF MAIN STYLES
    ======================================== */
