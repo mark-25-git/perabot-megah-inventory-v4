@@ -39,7 +39,6 @@
 .theme-toggle:hover {
   background-color: var(--color-bg-tertiary);
   border-color: var(--color-border-dark);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
