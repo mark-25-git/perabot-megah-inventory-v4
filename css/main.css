@@ -900,18 +900,18 @@
   pointer-events: auto;
   opacity: 0;
   transform: translateY(20px);
-  transition: all var(--transition-fast) ease-out;
+  transition: all 0.3s ease-out !important; /* Force smooth animation */
   height: 40px;
 }
 
 .toast.show {
-  opacity: 1;
-  transform: translateY(0);
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 .toast.hide {
-  opacity: 0;
-  transform: translateY(-20px);
+  opacity: 0 !important;
+  transform: translateY(-20px) !important;
 }
 
 /* Toast Types */

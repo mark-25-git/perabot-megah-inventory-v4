@@ -444,10 +444,10 @@
       // Add to container
       toastContainer.appendChild(toast);
       
-      // Trigger show animation
+      // Trigger show animation with smooth fadeIn and translateY
       setTimeout(() => toast.classList.add('show'), 10);
       
-      // Auto-hide after duration
+      // Auto-hide after duration with smooth fadeOut and translateY
       if (duration > 0) {
         setTimeout(() => {
           toast.classList.add('hide');
@@ -455,7 +455,7 @@
             if (toast.parentElement) {
               toast.remove();
             }
-          }, 200);
+          }, 300); // Increased to match smooth animation
         }, duration);
       }
       

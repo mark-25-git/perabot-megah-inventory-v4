@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perabot Megah - Dashboard</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body data-theme="dark">
+  <!-- Toast Container for Floating Notifications -->
+  <div id="toastContainer" class="toast-container"></div>
+  
+  <div class="container">
+    <!-- Theme Toggle Button - Outside Header -->
+    <div class="theme-toggle-container">
+      <button id="themeToggle" class="btn btn-outline btn-sm theme-toggle" onclick="toggleTheme()">
+        <i class="icon icon-lightbulb" id="themeIcon"></i>
+        <span id="themeText">Light Mode</span>
+      </button>
+    </div>
+    
+    <header class="page-header">
+      <h1 class="page-title">
+        Perabot Megah - Dashboard
+      </h1>
+    </header>
+    
+    <main class="main-content">
+      <!-- Connection Status -->
+      <div class="status-section minimal">
+        <span class="status-indicator" id="connectionStatus"></span>
+        <span id="connectionText">Testing connection...</span>
+        <button class="btn btn-tiny" onclick="testConnection()">
+          <i class="icon icon-refresh icon-sm"></i>
+        </button>
+      </div>
+
+      <!-- Section 1: Overview -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-dashboard icon-margin-right"></i>
+            Overview
+          </h3>
+          <div class="form-section-actions">
+            <button class="btn btn-primary" onclick="loadDashboardData()">
+              <i class="icon icon-refresh icon-margin-right"></i>
+              Refresh Data
+            </button>
+            <button class="btn btn-outline" onclick="clearDashboard()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Display
+            </button>
+          </div>
+        </div>
+        <p class="form-section-description">
+          Quick glance at sales + stock health
+        </p>
+        
+        <!-- KPI Cards -->
+        <div id="kpiCards" class="kpi-cards-container">
+          <div class="kpi-card">
+            <div class="kpi-icon">
+              <i class="icon icon-trending-up"></i>
+            </div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="totalSalesToday">--</div>
+              <div class="kpi-label">Total Sales Today (Shop)</div>
+              <div class="kpi-subtitle">RM</div>
+            </div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-icon">
+              <i class="icon icon-shopping-cart"></i>
+            </div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="unitsSoldToday">--</div>
+              <div class="kpi-label">Units Sold Today (Shop)</div>
+              <div class="kpi-subtitle">Units</div>
+            </div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-icon">
+              <i class="icon icon-inventory"></i>
+            </div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="totalInventoryValue">--</div>
+              <div class="kpi-label">Total Inventory Value</div>
+              <div class="kpi-subtitle">RM</div>
+            </div>
+          </div>
+          
+          <div class="kpi-card">
+            <div class="kpi-icon">
+              <i class="icon icon-warning"></i>
+            </div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="outOfStockCount">--</div>
+              <div class="kpi-label">Out of Stock SKUs</div>
+              <div class="kpi-subtitle">SKUs</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Sales Trend Chart -->
+        <div class="chart-section">
+          <div class="chart-header">
+            <h4 class="chart-title">Sales Trend</h4>
+            <div class="chart-controls">
+              <button class="btn btn-pill active" id="trend7Days" onclick="setTrendPeriod(7)">
+                7 Days
+              </button>
+              <button class="btn btn-pill" id="trend30Days" onclick="setTrendPeriod(30)">
+                30 Days
+              </button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <div id="salesTrendChart" class="chart-placeholder">
+              <div class="chart-loading">
+                <div class="loading-spinner"></div>
+                <span>Loading sales trend data...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Shop Information -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-store icon-margin-right"></i>
+            Shop Information
+          </h3>
+          <div class="form-section-actions">
+            <button class="btn btn-primary" onclick="refreshShopData()">
+              <i class="icon icon-refresh icon-margin-right"></i>
+              Refresh Shop Data
+            </button>
+            <button class="btn btn-outline" onclick="clearShopData()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Display
+            </button>
+          </div>
+        </div>
+        <p class="form-section-description">
+          Monitor daily sales & shop stock status
+        </p>
+        
+        <!-- Top 5 Selling SKUs Today -->
+        <div class="shop-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-trending-up icon-margin-right"></i>
+            Top 5 Selling SKUs Today
+          </h4>
+          <div class="donut-chart-container">
+            <div id="topSellersChart" class="chart-placeholder">
+              <div class="chart-loading">
+                <div class="loading-spinner"></div>
+                <span>Loading top sellers data...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Cumulative Sales by SKU -->
+        <div class="shop-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-bar-chart icon-margin-right"></i>
+            Cumulative Sales by SKU
+          </h4>
+          <div class="search-filter-container">
+            <input type="text" id="salesSearchInput" class="form-input search-input" placeholder="Search SKU or product name...">
+            <button type="button" class="search-clear" onclick="clearSalesSearch()">
+              <i class="icon icon-clear"></i>
+            </button>
+          </div>
+          <div class="table-container">
+            <table class="data-table" id="cumulativeSalesTable">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Product Name</th>
+                  <th>Total Units Sold</th>
+                  <th>Total Sales Value</th>
+                </tr>
+              </thead>
+              <tbody id="cumulativeSalesTableBody">
+                <!-- Dynamic rows will be added here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Shop Inventory + Low Stock Alerts -->
+        <div class="shop-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-inventory icon-margin-right"></i>
+            Shop Inventory + Low Stock Alerts
+          </h4>
+          <div class="table-container">
+            <table class="data-table" id="shopInventoryTable">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Product Name</th>
+                  <th>Current Stock</th>
+                  <th>Last 7 Days Sales</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="shopInventoryTableBody">
+                <!-- Dynamic rows will be added here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Warehouse -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-warehouse icon-margin-right"></i>
+            Warehouse
+          </h3>
+          <div class="form-section-actions">
+            <button class="btn btn-primary" onclick="refreshWarehouseData()">
+              <i class="icon icon-refresh icon-margin-right"></i>
+              Refresh Warehouse Data
+            </button>
+            <button class="btn btn-outline" onclick="clearWarehouseData()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Display
+            </button>
+          </div>
+        </div>
+        <p class="form-section-description">
+          Monitor warehouse inventory & stock movement
+        </p>
+        
+        <!-- Warehouse Inventory + Low Stock Alerts -->
+        <div class="warehouse-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-inventory icon-margin-right"></i>
+            Warehouse Inventory + Low Stock Alerts
+          </h4>
+          <div class="table-container">
+            <table class="data-table" id="warehouseInventoryTable">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Product Name</th>
+                  <th>Current Stock</th>
+                  <th>Last 7 Days Sales</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="warehouseInventoryTableBody">
+                <!-- Dynamic rows will be added here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Stock Movement (Last 30 Days) -->
+        <div class="warehouse-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-swap-horiz icon-margin-right"></i>
+            Stock Movement (Last 30 Days)
+          </h4>
+          
+          <!-- Summary Cards -->
+          <div class="movement-summary">
+            <div class="summary-card">
+              <div class="summary-icon summary-in">
+                <i class="icon icon-add"></i>
+              </div>
+              <div class="summary-content">
+                <div class="summary-value" id="movementInCount">--</div>
+                <div class="summary-label">Stock In</div>
+              </div>
+            </div>
+            
+            <div class="summary-card">
+              <div class="summary-icon summary-out">
+                <i class="icon icon-remove"></i>
+              </div>
+              <div class="summary-content">
+                <div class="summary-value" id="movementOutCount">--</div>
+                <div class="summary-label">Stock Out</div>
+              </div>
+            </div>
+            
+            <div class="summary-card">
+              <div class="summary-icon summary-transfer">
+                <i class="icon icon-swap-horiz"></i>
+              </div>
+              <div class="summary-content">
+                <div class="summary-value" id="movementTransferCount">--</div>
+                <div class="summary-label">Transfers</div>
+              </div>
+            </div>
+            
+            <div class="summary-card">
+              <div class="summary-icon summary-adjustment">
+                <i class="icon icon-adjust"></i>
+              </div>
+              <div class="summary-content">
+                <div class="summary-value" id="movementAdjustmentCount">--</div>
+                <div class="summary-label">Adjustments</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Expandable Detail Table -->
+          <div class="movement-details">
+            <div class="details-header" onclick="toggleMovementDetails()">
+              <h5 class="details-title">
+                <i class="icon icon-list icon-margin-right"></i>
+                Transaction Details
+              </h5>
+              <i class="icon icon-chevron-down chevron-icon" id="movementChevron"></i>
+            </div>
+            <div class="details-content" id="movementDetailsContent" style="display: none;">
+              <div class="table-container">
+                <table class="data-table" id="movementDetailsTable">
+                  <thead>
+                    <tr>
+                      <th>Transaction ID</th>
+                      <th>Timestamp</th>
+                      <th>SKU</th>
+                      <th>Quantity</th>
+                      <th>Mode</th>
+                      <th>Source</th>
+                      <th>Destination</th>
+                      <th>User</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="movementDetailsTableBody">
+                    <!-- Dynamic rows will be added here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Dead Stock (No Sales in 14+ Days) -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <h3 class="form-section-title">
+            <i class="icon icon-warning icon-margin-right"></i>
+            Dead Stock (No Sales in 14+ Days)
+          </h3>
+          <div class="form-section-actions">
+            <button class="btn btn-primary" onclick="refreshDeadStockData()">
+              <i class="icon icon-refresh icon-margin-right"></i>
+              Refresh Dead Stock Data
+            </button>
+            <button class="btn btn-outline" onclick="clearDeadStockData()">
+              <i class="icon icon-clear icon-margin-right"></i>
+              Clear Display
+            </button>
+          </div>
+        </div>
+        <p class="form-section-description">
+          Identify stock tying up cash without selling
+        </p>
+        
+        <!-- Dead Stock Table -->
+        <div class="dead-stock-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-inventory icon-margin-right"></i>
+            Dead Stock Analysis
+          </h4>
+          <div class="table-container">
+            <table class="data-table" id="deadStockTable">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Product Name</th>
+                  <th>Current Stock</th>
+                  <th>Days Since Last Sale</th>
+                  <th>Stock Value (RM)</th>
+                  <th>Risk Level</th>
+                </tr>
+              </thead>
+              <tbody id="deadStockTableBody">
+                <!-- Dynamic rows will be added here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Optional Bar Chart -->
+        <div class="dead-stock-section">
+          <h4 class="section-subtitle">
+            <i class="icon icon-bar-chart icon-margin-right"></i>
+            Current Stock vs Days Since Last Sale
+          </h4>
+          <div class="chart-container">
+            <div id="deadStockChart" class="chart-placeholder">
+              <div class="chart-loading">
+                <div class="loading-spinner"></div>
+                <span>Loading dead stock chart data...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Configuration
+    const apiBase = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
+    
+    // Global variables
+    let currentTrendPeriod = 7;
+    let dashboardData = {
+      inventorySnapshot: [],
+      salesSnapshot: [],
+      productMaster: []
+    };
+
+    // ====== Toast Notification System ======
+    
+    // Centralized toast function that automatically handles all message types
+    function showToast(type, title, message, duration = 5000) {
+      const toastContainer = document.getElementById('toastContainer');
+      
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      // Build a dedupe key from type+title+message
+      const key = `${type}|${title}|${message}`;
+      toast.setAttribute('data-toast-key', key);
+      
+      // If a toast with the same key already exists, reuse it (no duplicate)
+      const existing = toastContainer.querySelector(`.toast[data-toast-key="${CSS.escape(key)}"]`);
+      if (existing) {
+        return existing;
+      }
+      
+      // Get appropriate icon for type
+      let iconClass = 'icon-info';
+      switch(type) {
+        case 'success': iconClass = 'icon-check-circle'; break;
+        case 'error': iconClass = 'icon-error'; break;
+        case 'warning': iconClass = 'icon-warning'; break;
+        case 'info': iconClass = 'icon-info'; break;
+      }
+      
+      toast.innerHTML = `
+        <i class="icon ${iconClass} toast-icon"></i>
+        <div class="toast-content">
+          <span class="toast-message">${message}</span>
+        </div>
+      `;
+      
+      // Cap number of toasts to 3 (remove the oldest first)
+      while (toastContainer.children.length >= 3) {
+        toastContainer.removeChild(toastContainer.firstElementChild);
+      }
+      
+      // Add to container
+      toastContainer.appendChild(toast);
+      
+      // Trigger show animation with smooth fadeIn and translateY
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      // Auto-hide after duration with smooth fadeOut and translateY
+      if (duration > 0) {
+        setTimeout(() => {
+          toast.classList.add('hide');
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 300); // Increased to match smooth animation
+        }, duration);
+      }
+      
+      return toast;
+    }
+    
+    // Simple convenience functions that only show toasts (no result div updates)
+    function showSuccess(message, duration = 5000) {
+      return showToast('success', '', message, duration);
+    }
+    
+    function showError(message, duration = 5000) {
+      return showToast('error', '', message, duration);
+    }
+    
+    function showWarning(message, duration = 5000) {
+      return showToast('warning', '', message, duration);
+    }
+    
+    function showInfo(message, duration = 5000) {
+      return showToast('info', '', message, duration);
+    }
+
+    // ====== Initialize Dashboard ======
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeTheme();
+      testConnection();
+      loadDashboardData();
+    });
+
+    // ====== Connection Testing ======
+    function testConnection() {
+      const statusIndicator = document.getElementById('connectionStatus');
+      const statusText = document.getElementById('connectionText');
+      
+      statusIndicator.className = 'status-indicator';
+      statusText.textContent = 'Testing connection...';
+      
+      fetch(apiBase + "?action=getInventorySnapshot")
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === "success") {
+            statusIndicator.className = 'status-indicator status-online';
+            statusText.textContent = 'Connected successfully! Web app is responding.';
+          } else {
+            throw new Error(data.message || 'Unknown error from web app');
+          }
+        })
+        .catch(error => {
+          statusIndicator.className = 'status-indicator status-offline';
+          statusText.textContent = 'Connection failed: ' + error.message;
+          showError(error.message, 5000);
+          console.error('Connection test failed:', error);
+        });
+    }
+
+    // ====== Dashboard Data Loading ======
+    function loadDashboardData() {
+      showInfo('Loading dashboard data...', 2000);
+      
+      // Load all data in parallel
+      Promise.all([
+        fetch(apiBase + "?action=getInventorySnapshot").then(r => r.json()),
+        fetch(apiBase + "?action=getProducts").then(r => r.json())
+      ])
+      .then(([inventoryData, productsData]) => {
+        if (inventoryData.status === "success") {
+          dashboardData.inventorySnapshot = inventoryData.data;
+        }
+        
+        if (productsData.status === "success") {
+          dashboardData.productMaster = productsData.data;
+        }
+        
+        // Process and display data
+        processDashboardData();
+        
+        showSuccess('Dashboard data loaded successfully');
+      })
+      .catch(error => {
+        showError('Failed to load dashboard data: ' + error.message);
+        console.error('Dashboard data loading failed:', error);
+      });
+    }
+
+    // ====== Data Processing ======
+    function processDashboardData() {
+      calculateKPIs();
+      updateSalesTrend();
+    }
+
+    function calculateKPIs() {
+      const today = new Date();
+      const todayString = today.toDateString();
+      
+      let totalSalesToday = 0;
+      let unitsSoldToday = 0;
+      let totalInventoryValue = 0;
+      let outOfStockCount = 0;
+      
+      // Process inventory snapshot data
+      if (dashboardData.inventorySnapshot.length > 1) {
+        const headers = dashboardData.inventorySnapshot[0];
+        const rows = dashboardData.inventorySnapshot.slice(1);
+        
+        // Find column indices
+        const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+        const locationIndex = headers.findIndex(h => h.toLowerCase().includes('location'));
+        const stockIndex = headers.findIndex(h => h.toLowerCase().includes('currentstock'));
+        const inventoryValueIndex = headers.findIndex(h => h.toLowerCase().includes('inventoryvalue'));
+        
+        if (skuIndex !== -1 && stockIndex !== -1) {
+          rows.forEach(row => {
+            const stock = parseInt(row[stockIndex]) || 0;
+            const location = row[locationIndex];
+            
+            // Count out of stock SKUs
+            if (stock === 0) {
+              outOfStockCount++;
+            }
+            
+            // Calculate total inventory value
+            if (inventoryValueIndex !== -1) {
+              const inventoryValue = parseFloat(row[inventoryValueIndex]) || 0;
+              totalInventoryValue += inventoryValue;
+            }
+          });
+        }
+      }
+      
+      // Process sales data (if available)
+      // Note: Sales data will be processed when we implement the sales trend chart
+      
+      // Update KPI displays
+      document.getElementById('totalSalesToday').textContent = formatCurrency(totalSalesToday);
+      document.getElementById('unitsSoldToday').textContent = unitsSoldToday.toLocaleString();
+      document.getElementById('totalInventoryValue').textContent = formatCurrency(totalInventoryValue);
+      document.getElementById('outOfStockCount').textContent = outOfStockCount.toLocaleString();
+    }
+
+    function updateSalesTrend() {
+      // Placeholder for sales trend chart
+      // This will be implemented when we add charting functionality
+      const chartContainer = document.getElementById('salesTrendChart');
+      chartContainer.innerHTML = `
+        <div class="chart-placeholder-content">
+          <i class="icon icon-trending-up icon-large"></i>
+          <p>Sales trend chart will be displayed here</p>
+          <small>Currently showing ${currentTrendPeriod} days data</small>
+        </div>
+      `;
+    }
+
+    // ====== Trend Period Controls ======
+    function setTrendPeriod(days) {
+      currentTrendPeriod = days;
+      
+      // Update button states
+      document.getElementById('trend7Days').classList.toggle('active', days === 7);
+      document.getElementById('trend30Days').classList.toggle('active', days === 30);
+      
+      // Update chart
+      updateSalesTrend();
+      
+      showInfo(`Switched to ${days} days trend view`);
+    }
+
+    // ====== Utility Functions ======
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-MY', {
+        style: 'currency',
+        currency: 'MYR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount);
+    }
+
+    function clearDashboard() {
+      // Reset KPI values
+      document.getElementById('totalSalesToday').textContent = '--';
+      document.getElementById('unitsSoldToday').textContent = '--';
+      document.getElementById('totalInventoryValue').textContent = '--';
+      document.getElementById('outOfStockCount').textContent = '--';
+      
+      // Reset chart
+      updateSalesTrend();
+      
+      showInfo('Dashboard display cleared');
+    }
+
+    // ====== Shop Information Functions ======
+    
+    function refreshShopData() {
+      showInfo('Refreshing shop data...', 2000);
+      
+      // Load sales snapshot data for shop information
+      fetch(apiBase + "?action=getSalesSnapshot")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            dashboardData.salesSnapshot = data.data;
+            processShopData();
+            showSuccess('Shop data refreshed successfully');
+          } else {
+            throw new Error(data.message || 'Failed to load sales data');
+          }
+        })
+        .catch(error => {
+          showError('Failed to refresh shop data: ' + error.message);
+          console.error('Shop data refresh failed:', error);
+        });
+    }
+
+    function processShopData() {
+      updateTopSellersChart();
+      updateCumulativeSalesTable();
+      updateShopInventoryTable();
+    }
+
+    function updateTopSellersChart() {
+      // Placeholder for donut chart
+      // This will be implemented when we add charting functionality
+      const chartContainer = document.getElementById('topSellersChart');
+      chartContainer.innerHTML = `
+        <div class="chart-placeholder-content">
+          <i class="icon icon-pie-chart icon-large"></i>
+          <p>Top 5 Selling SKUs Today</p>
+          <small>Donut chart will be displayed here</small>
+        </div>
+      `;
+    }
+
+    function updateCumulativeSalesTable() {
+      if (!dashboardData.salesSnapshot || dashboardData.salesSnapshot.length < 2) {
+        return;
+      }
+
+      const headers = dashboardData.salesSnapshot[0];
+      const rows = dashboardData.salesSnapshot.slice(1);
+      
+      // Find column indices
+      const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+      const totalSoldIndex = headers.findIndex(h => h.toLowerCase().includes('totalsold'));
+      const cumulativeValueIndex = headers.findIndex(h => h.toLowerCase().includes('cumulativevalue'));
+      
+      if (skuIndex === -1 || totalSoldIndex === -1) {
+        return;
+      }
+
+      // Process data and create table rows
+      const tableBody = document.getElementById('cumulativeSalesTableBody');
+      tableBody.innerHTML = '';
+
+      rows.forEach(row => {
+        const sku = row[skuIndex] || '';
+        const totalSold = parseInt(row[totalSoldIndex]) || 0;
+        const cumulativeValue = parseFloat(row[cumulativeValueIndex]) || 0;
+        
+        // Find product name from product master
+        const product = dashboardData.productMaster.find(p => p.sku === sku);
+        const productName = product ? product.displayName : 'Unknown Product';
+
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${sku}</td>
+          <td>${productName}</td>
+          <td>${totalSold.toLocaleString()}</td>
+          <td>${formatCurrency(cumulativeValue)}</td>
+        `;
+        
+        tableBody.appendChild(tableRow);
+      });
+
+      // Sort by total sales (descending)
+      sortTableByColumn('cumulativeSalesTable', 3, 'desc');
+    }
+
+    function updateShopInventoryTable() {
+      if (!dashboardData.inventorySnapshot || dashboardData.inventorySnapshot.length < 2) {
+        return;
+      }
+
+      const headers = dashboardData.inventorySnapshot[0];
+      const rows = dashboardData.inventorySnapshot.slice(1);
+      
+      // Find column indices
+      const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+      const locationIndex = headers.findIndex(h => h.toLowerCase().includes('location'));
+      const stockIndex = headers.findIndex(h => h.toLowerCase().includes('currentstock'));
+      const last7DaysSalesIndex = headers.findIndex(h => h.toLowerCase().includes('last7dayssales'));
+      
+      if (skuIndex === -1 || stockIndex === -1) {
+        return;
+      }
+
+      // Filter for shop location only
+      const shopRows = rows.filter(row => 
+        row[locationIndex] && row[locationIndex].toLowerCase().includes('shop')
+      );
+
+      // Process data and create table rows
+      const tableBody = document.getElementById('shopInventoryTableBody');
+      tableBody.innerHTML = '';
+
+      shopRows.forEach(row => {
+        const sku = row[skuIndex] || '';
+        const stock = parseInt(row[stockIndex]) || 0;
+        const last7DaysSales = parseInt(row[last7DaysSalesIndex]) || 0;
+        
+        // Find product name from product master
+        const product = dashboardData.productMaster.find(p => p.sku === sku);
+        const productName = product ? product.displayName : 'Unknown Product';
+
+        // Determine stock status
+        let statusClass = 'stock-status-green';
+        let statusText = 'Healthy';
+        
+        if (stock === 0) {
+          statusClass = 'stock-status-red';
+          statusText = 'Out of Stock';
+        } else if (stock < 20) {
+          statusClass = 'stock-status-yellow';
+          statusText = 'Low Stock';
+        }
+
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${sku}</td>
+          <td>${productName}</td>
+          <td>${stock.toLocaleString()}</td>
+          <td>${last7DaysSales.toLocaleString()}</td>
+          <td><span class="stock-status ${statusClass}">${statusText}</span></td>
+        `;
+        
+        tableBody.appendChild(tableRow);
+      });
+    }
+
+    function clearShopData() {
+      // Clear top sellers chart
+      document.getElementById('topSellersChart').innerHTML = `
+        <div class="chart-loading">
+          <div class="loading-spinner"></div>
+          <span>Loading top sellers data...</span>
+        </div>
+      `;
+      
+      // Clear tables
+      document.getElementById('cumulativeSalesTableBody').innerHTML = '';
+      document.getElementById('shopInventoryTableBody').innerHTML = '';
+      
+      // Clear search
+      document.getElementById('salesSearchInput').value = '';
+      
+      showInfo('Shop data display cleared');
+    }
+
+    function clearSalesSearch() {
+      document.getElementById('salesSearchInput').value = '';
+      // Reset table to show all data
+      updateCumulativeSalesTable();
+    }
+
+    // Add search functionality for cumulative sales table
+    document.addEventListener('DOMContentLoaded', function() {
+      const salesSearchInput = document.getElementById('salesSearchInput');
+      if (salesSearchInput) {
+        salesSearchInput.addEventListener('input', function() {
+          filterCumulativeSalesTable(this.value);
+        });
+      }
+    });
+
+    function filterCumulativeSalesTable(searchTerm) {
+      if (!dashboardData.salesSnapshot || dashboardData.salesSnapshot.length < 2) {
+        return;
+      }
+
+      const headers = dashboardData.salesSnapshot[0];
+      const rows = dashboardData.salesSnapshot.slice(1);
+      
+      // Find column indices
+      const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+      const totalSoldIndex = headers.findIndex(h => h.toLowerCase().includes('totalsold'));
+      const cumulativeValueIndex = headers.findIndex(h => h.toLowerCase().includes('cumulativevalue'));
+      
+      if (skuIndex === -1 || totalSoldIndex === -1) {
+        return;
+      }
+
+      // Filter rows based on search term
+      const filteredRows = rows.filter(row => {
+        const sku = row[skuIndex] || '';
+        const product = dashboardData.productMaster.find(p => p.sku === sku);
+        const productName = product ? product.displayName : '';
+        
+        const searchLower = searchTerm.toLowerCase();
+        return sku.toLowerCase().includes(searchLower) || 
+               productName.toLowerCase().includes(searchLower);
+      });
+
+      // Update table with filtered data
+      const tableBody = document.getElementById('cumulativeSalesTableBody');
+      tableBody.innerHTML = '';
+
+      filteredRows.forEach(row => {
+        const sku = row[skuIndex] || '';
+        const totalSold = parseInt(row[totalSoldIndex]) || 0;
+        const cumulativeValue = parseFloat(row[cumulativeValueIndex]) || 0;
+        
+        // Find product name from product master
+        const product = dashboardData.productMaster.find(p => p.sku === sku);
+        const productName = product ? product.displayName : 'Unknown Product';
+
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${sku}</td>
+          <td>${productName}</td>
+          <td>${totalSold.toLocaleString()}</td>
+          <td>${formatCurrency(cumulativeValue)}</td>
+        `;
+        
+        tableBody.appendChild(tableRow);
+      });
+
+      // Sort by total sales (descending)
+      sortTableByColumn('cumulativeSalesTable', 3, 'desc');
+    }
+
+    // ====== Warehouse Functions ======
+    
+    function refreshWarehouseData() {
+      showInfo('Refreshing warehouse data...', 2000);
+      
+      // Load inventory log data for stock movement
+      fetch(apiBase + "?action=getInventoryLog")
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            dashboardData.inventoryLog = data.data;
+            processWarehouseData();
+            showSuccess('Warehouse data refreshed successfully');
+          } else {
+            throw new Error(data.message || 'Failed to load inventory log data');
+          }
+        })
+        .catch(error => {
+          showError('Failed to refresh warehouse data: ' + error.message);
+          console.error('Warehouse data refresh failed:', error);
+        });
+    }
+
+    function processWarehouseData() {
+      updateWarehouseInventoryTable();
+      updateStockMovementSummary();
+      updateMovementDetailsTable();
+    }
+
+    function updateWarehouseInventoryTable() {
+      if (!dashboardData.inventorySnapshot || dashboardData.inventorySnapshot.length < 2) {
+        return;
+      }
+
+      const headers = dashboardData.inventorySnapshot[0];
+      const rows = dashboardData.inventorySnapshot.slice(1);
+      
+      // Find column indices
+      const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+      const locationIndex = headers.findIndex(h => h.toLowerCase().includes('location'));
+      const stockIndex = headers.findIndex(h => h.toLowerCase().includes('currentstock'));
+      const last7DaysSalesIndex = headers.findIndex(h => h.toLowerCase().includes('last7dayssales'));
+      
+      if (skuIndex === -1 || stockIndex === -1) {
+        return;
+      }
+
+      // Filter for warehouse location only
+      const warehouseRows = rows.filter(row => 
+        row[locationIndex] && row[locationIndex].toLowerCase().includes('warehouse')
+      );
+
+      // Process data and create table rows
+      const tableBody = document.getElementById('warehouseInventoryTableBody');
+      tableBody.innerHTML = '';
+
+      warehouseRows.forEach(row => {
+        const sku = row[skuIndex] || '';
+        const stock = parseInt(row[stockIndex]) || 0;
+        const last7DaysSales = parseInt(row[last7DaysSalesIndex]) || 0;
+        
+        // Find product name from product master
+        const product = dashboardData.productMaster.find(p => p.sku === sku);
+        const productName = product ? product.displayName : 'Unknown Product';
+
+        // Determine stock status
+        let statusClass = 'stock-status-green';
+        let statusText = 'Healthy';
+        
+        if (stock === 0) {
+          statusClass = 'stock-status-red';
+          statusText = 'Out of Stock';
+        } else if (stock < 20) {
+          statusClass = 'stock-status-yellow';
+          statusText = 'Low Stock';
+        }
+
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${sku}</td>
+          <td>${productName}</td>
+          <td>${stock.toLocaleString()}</td>
+          <td>${last7DaysSales.toLocaleString()}</td>
+          <td><span class="stock-status ${statusClass}">${statusText}</span></td>
+        `;
+        
+        tableBody.appendChild(tableRow);
+      });
+    }
+
+    function updateStockMovementSummary() {
+      if (!dashboardData.inventoryLog || dashboardData.inventoryLog.length < 2) {
+        return;
+      }
+
+      const headers = dashboardData.inventoryLog[0];
+      const rows = dashboardData.inventoryLog.slice(1);
+      
+      // Find column indices
+      const modeIndex = headers.findIndex(h => h.toLowerCase().includes('mode'));
+      const timestampIndex = headers.findIndex(h => h.toLowerCase().includes('timestamp'));
+      
+      if (modeIndex === -1 || timestampIndex === -1) {
+        return;
+      }
+
+      // Calculate 30 days ago
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Filter for last 30 days
+      const recentRows = rows.filter(row => {
+        const timestamp = new Date(row[timestampIndex]);
+        return timestamp >= thirtyDaysAgo;
+      });
+
+      // Count by mode
+      let inCount = 0, outCount = 0, transferCount = 0, adjustmentCount = 0;
+
+      recentRows.forEach(row => {
+        const mode = row[modeIndex] ? row[modeIndex].toLowerCase() : '';
+        
+        if (mode.includes('receiving')) {
+          inCount++;
+        } else if (mode.includes('sale')) {
+          outCount++;
+        } else if (mode.includes('transfer')) {
+          transferCount++;
+        } else if (mode.includes('adjustment')) {
+          adjustmentCount++;
+        }
+      });
+
+      // Update summary cards
+      document.getElementById('movementInCount').textContent = inCount.toLocaleString();
+      document.getElementById('movementOutCount').textContent = outCount.toLocaleString();
+      document.getElementById('movementTransferCount').textContent = transferCount.toLocaleString();
+      document.getElementById('movementAdjustmentCount').textContent = adjustmentCount.toLocaleString();
+    }
+
+    function updateMovementDetailsTable() {
+      if (!dashboardData.inventoryLog || dashboardData.inventoryLog.length < 2) {
+        return;
+      }
+
+      const headers = dashboardData.inventoryLog[0];
+      const rows = dashboardData.inventoryLog.slice(1);
+      
+      // Find column indices
+      const transactionIdIndex = headers.findIndex(h => h.toLowerCase().includes('transactionid') || h.toLowerCase().includes('id'));
+      const timestampIndex = headers.findIndex(h => h.toLowerCase().includes('timestamp'));
+      const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+      const quantityIndex = headers.findIndex(h => h.toLowerCase().includes('quantity'));
+      const modeIndex = headers.findIndex(h => h.toLowerCase().includes('mode'));
+      const sourceIndex = headers.findIndex(h => h.toLowerCase().includes('source'));
+      const destinationIndex = headers.findIndex(h => h.toLowerCase().includes('destination'));
+      const userIndex = headers.findIndex(h => h.toLowerCase().includes('user'));
+      const notesIndex = headers.findIndex(h => h.toLowerCase().includes('notes'));
+      
+      if (skuIndex === -1) {
+        return;
+      }
+
+      // Calculate 30 days ago
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Filter for last 30 days
+      const recentRows = rows.filter(row => {
+        const timestamp = new Date(row[timestampIndex]);
+        return timestamp >= thirtyDaysAgo;
+      });
+
+      // Process data and create table rows
+      const tableBody = document.getElementById('movementDetailsTableBody');
+      tableBody.innerHTML = '';
+
+      recentRows.forEach(row => {
+        const transactionId = row[transactionIdIndex] || 'N/A';
+        const timestamp = row[timestampIndex] ? formatTimestamp(row[timestampIndex]) : 'N/A';
+        const sku = row[skuIndex] || '';
+        const quantity = parseInt(row[quantityIndex]) || 0;
+        const mode = row[modeIndex] || '';
+        const source = row[sourceIndex] || '';
+        const destination = row[destinationIndex] || '';
+        const user = row[userIndex] || '';
+        const notes = row[notesIndex] || '';
+
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${transactionId}</td>
+          <td>${timestamp}</td>
+          <td>${sku}</td>
+          <td>${quantity.toLocaleString()}</td>
+          <td>${mode}</td>
+          <td>${source}</td>
+          <td>${destination}</td>
+          <td>${user}</td>
+          <td>${notes}</td>
+        `;
+        
+        tableBody.appendChild(tableRow);
+      });
+
+      // Sort by timestamp (newest first)
+      sortTableByColumn('movementDetailsTable', 1, 'desc');
+    }
+
+    function clearWarehouseData() {
+      // Clear warehouse inventory table
+      document.getElementById('warehouseInventoryTableBody').innerHTML = '';
+      
+      // Reset summary cards
+      document.getElementById('movementInCount').textContent = '--';
+      document.getElementById('movementOutCount').textContent = '--';
+      document.getElementById('movementTransferCount').textContent = '--';
+      document.getElementById('movementAdjustmentCount').textContent = '--';
+      
+      // Clear movement details table
+      document.getElementById('movementDetailsTableBody').innerHTML = '';
+      
+      // Collapse details if expanded
+      const detailsContent = document.getElementById('movementDetailsContent');
+      const chevron = document.getElementById('movementChevron');
+      if (detailsContent.style.display !== 'none') {
+        detailsContent.style.display = 'none';
+        chevron.className = 'icon icon-chevron-down chevron-icon';
+      }
+      
+      showInfo('Warehouse data display cleared');
+    }
+
+    function toggleMovementDetails() {
+      const detailsContent = document.getElementById('movementDetailsContent');
+      const chevron = document.getElementById('movementChevron');
+      
+      if (detailsContent.style.display === 'none') {
+        detailsContent.style.display = 'block';
+        chevron.className = 'icon icon-chevron-up chevron-icon';
+      } else {
+        detailsContent.style.display = 'none';
+        chevron.className = 'icon icon-chevron-down chevron-icon';
+      }
+    }
+
+    function formatTimestamp(timestamp) {
+      if (!timestamp) {
+        return 'N/A';
+      }
+      
+      try {
+        const date = new Date(timestamp);
+        
+        if (isNaN(date.getTime())) {
+          return timestamp; // Return original if invalid date
+        }
+        
+        // Format: "Aug 21, 2025 at 12:15 PM"
+        const options = {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        };
+        
+        return date.toLocaleDateString('en-US', options);
+      } catch (error) {
+        return timestamp; // Return original if formatting fails
+      }
+    }
+
+    // ====== Dead Stock Functions ======
+    
+    function refreshDeadStockData() {
+      showInfo('Refreshing dead stock data...', 2000);
+      
+      // Process dead stock data from existing inventory and sales data
+      if (dashboardData.inventorySnapshot && dashboardData.salesSnapshot) {
+        processDeadStockData();
+        showSuccess('Dead stock data refreshed successfully');
+      } else {
+        // Load required data first
+        Promise.all([
+          fetch(apiBase + "?action=getInventorySnapshot").then(r => r.json()),
+          fetch(apiBase + "?action=getSalesSnapshot").then(r => r.json())
+        ])
+        .then(([inventoryData, salesData]) => {
+          if (inventoryData.status === "success") {
+            dashboardData.inventorySnapshot = inventoryData.data;
+          }
+          if (salesData.status === "success") {
+            dashboardData.salesSnapshot = salesData.data;
+          }
+          processDeadStockData();
+          showSuccess('Dead stock data refreshed successfully');
+        })
+        .catch(error => {
+          showError('Failed to refresh dead stock data: ' + error.message);
+          console.error('Dead stock data refresh failed:', error);
+        });
+      }
+    }
+
+    function processDeadStockData() {
+      updateDeadStockTable();
+      updateDeadStockChart();
+    }
+
+    function updateDeadStockTable() {
+      if (!dashboardData.inventorySnapshot || !dashboardData.salesSnapshot || 
+          dashboardData.inventorySnapshot.length < 2 || dashboardData.salesSnapshot.length < 2) {
+        return;
+      }
+
+      const inventoryHeaders = dashboardData.inventorySnapshot[0];
+      const inventoryRows = dashboardData.inventorySnapshot.slice(1);
+      const salesHeaders = dashboardData.salesSnapshot[0];
+      const salesRows = dashboardData.salesSnapshot.slice(1);
+      
+      // Find column indices
+      const skuIndex = inventoryHeaders.findIndex(h => h.toLowerCase().includes('sku'));
+      const stockIndex = inventoryHeaders.findIndex(h => h.toLowerCase().includes('currentstock'));
+      const inventoryValueIndex = inventoryHeaders.findIndex(h => h.toLowerCase().includes('inventoryvalue'));
+      const lastSoldDateIndex = salesHeaders.findIndex(h => h.toLowerCase().includes('lastsolddate'));
+      
+      if (skuIndex === -1 || stockIndex === -1) {
+        return;
+      }
+
+      // Calculate 14 days ago
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+      // Process inventory data and find dead stock
+      const deadStockData = [];
+      
+      inventoryRows.forEach(inventoryRow => {
+        const sku = inventoryRow[skuIndex] || '';
+        const stock = parseInt(inventoryRow[stockIndex]) || 0;
+        const inventoryValue = parseFloat(inventoryRow[inventoryValueIndex]) || 0;
+        
+        // Skip if no stock
+        if (stock === 0) return;
+        
+        // Find last sold date from sales data
+        const salesRow = salesRows.find(row => row[skuIndex] === sku);
+        let lastSoldDate = null;
+        let daysSinceLastSale = 999;
+        
+        if (salesRow && lastSoldDateIndex !== -1) {
+          lastSoldDate = salesRow[lastSoldDateIndex];
+          if (lastSoldDate) {
+            const lastSold = new Date(lastSoldDate);
+            if (!isNaN(lastSold.getTime())) {
+              const diffTime = Math.abs(new Date() - lastSold);
+              daysSinceLastSale = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+          }
+        }
+        
+        // Only include if no sales in 14+ days
+        if (daysSinceLastSale >= 14) {
+          // Find product name from product master
+          const product = dashboardData.productMaster.find(p => p.sku === sku);
+          const productName = product ? product.displayName : 'Unknown Product';
+          
+          // Determine risk level
+          let riskLevel = 'low';
+          let riskClass = 'risk-level-low';
+          
+          if (daysSinceLastSale >= 90) {
+            riskLevel = 'critical';
+            riskClass = 'risk-level-critical';
+          } else if (daysSinceLastSale >= 60) {
+            riskLevel = 'high';
+            riskClass = 'risk-level-high';
+          } else if (daysSinceLastSale >= 30) {
+            riskLevel = 'medium';
+            riskClass = 'risk-level-medium';
+          }
+          
+          deadStockData.push({
+            sku,
+            productName,
+            stock,
+            daysSinceLastSale,
+            inventoryValue,
+            riskLevel,
+            riskClass
+          });
+        }
+      });
+
+      // Sort by days since last sale (highest first)
+      deadStockData.sort((a, b) => b.daysSinceLastSale - a.daysSinceLastSale);
+
+      // Update table
+      const tableBody = document.getElementById('deadStockTableBody');
+      tableBody.innerHTML = '';
+
+      deadStockData.forEach(item => {
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${item.sku}</td>
+          <td>${item.productName}</td>
+          <td>${item.stock.toLocaleString()}</td>
+          <td>${item.daysSinceLastSale}</td>
+          <td>${formatCurrency(item.inventoryValue)}</td>
+          <td><span class="risk-level ${item.riskClass}">${item.riskLevel}</span></td>
+        `;
+        
+        tableBody.appendChild(tableRow);
+      });
+
+      // Store data for chart
+      dashboardData.deadStockData = deadStockData;
+    }
+
+    function updateDeadStockChart() {
+      // Placeholder for bar chart
+      // This will be implemented when we add charting functionality
+      const chartContainer = document.getElementById('deadStockChart');
+      
+      if (!dashboardData.deadStockData || dashboardData.deadStockData.length === 0) {
+        chartContainer.innerHTML = `
+          <div class="chart-placeholder-content">
+            <i class="icon icon-check-circle icon-large"></i>
+            <p>No dead stock found</p>
+            <small>All products have recent sales activity</small>
+          </div>
+        `;
+        return;
+      }
+      
+      chartContainer.innerHTML = `
+        <div class="chart-placeholder-content">
+          <i class="icon icon-bar-chart icon-large"></i>
+          <p>Dead Stock Analysis Chart</p>
+          <small>${dashboardData.deadStockData.length} products with no sales in 14+ days</small>
+          <div class="chart-summary">
+            <div class="summary-item">
+              <span class="summary-label">Total Dead Stock Value:</span>
+              <span class="summary-value">${formatCurrency(dashboardData.deadStockData.reduce((sum, item) => sum + item.inventoryValue, 0))}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Critical Risk Items:</span>
+              <span class="summary-value">${dashboardData.deadStockData.filter(item => item.riskLevel === 'critical').length}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function clearDeadStockData() {
+      // Clear dead stock table
+      document.getElementById('deadStockTableBody').innerHTML = '';
+      
+      // Reset chart
+      document.getElementById('deadStockChart').innerHTML = `
+        <div class="chart-loading">
+          <div class="loading-spinner"></div>
+          <span>Loading dead stock chart data...</span>
+        </div>
+      `;
+      
+      // Clear stored data
+      dashboardData.deadStockData = [];
+      
+      showInfo('Dead stock data display cleared');
+    }
+
+    // ====== Utility Functions ======
+    
+    function sortTableByColumn(tableId, columnIndex, direction = 'asc') {
+      const table = document.getElementById(tableId);
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      
+      rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent;
+        const bValue = b.cells[columnIndex].textContent;
+        
+        // Try to parse as number first
+        const aNum = parseFloat(aValue.replace(/[^\d.-]/g, ''));
+        const bNum = parseFloat(bValue.replace(/[^\d.-]/g, ''));
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return direction === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+        
+        // Fall back to string comparison
+        return direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      });
+      
+      // Re-append sorted rows
+      rows.forEach(row => tbody.appendChild(row));
+    }
+
+    // ====== Theme Toggle System ======
+    
+    // Toggle between light and dark themes
+    function toggleTheme() {
+      const body = document.body;
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      
+      if (body.getAttribute('data-theme') === 'dark') {
+        // Switch to light theme
+        body.setAttribute('data-theme', 'light');
+        themeIcon.className = 'icon icon-dark-mode';
+        themeText.textContent = 'Dark Mode';
+        localStorage.setItem('theme', 'light');
+        showInfo('Switched to Light Mode');
+      } else {
+        // Switch to dark theme
+        body.setAttribute('data-theme', 'dark');
+        themeIcon.className = 'icon icon-lightbulb';
+        themeText.textContent = 'Light Mode';
+        localStorage.setItem('theme', 'dark');
+        showInfo('Switched to Dark Mode');
+      }
+    }
+    
+    // Initialize theme from localStorage or default to dark
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      const body = document.body;
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      
+      body.setAttribute('data-theme', savedTheme);
+      
+      if (savedTheme === 'light') {
+        themeIcon.className = 'icon icon-dark-mode';
+        themeText.textContent = 'Dark Mode';
+      } else {
+        themeIcon.className = 'icon icon-lightbulb';
+        themeText.textContent = 'Light Mode';
+      }
+    }
+  </script>
+</body>
+</html>

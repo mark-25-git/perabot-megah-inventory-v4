@@ -6,10 +6,15 @@ Note: For adjustments, Quantity shows the actual change (positive for increase, 
 
 
 Product Inventory Tracker (Code Scanning) - Inventory Snapshot.csv
-Purpose: Provides a real-time snapshot of current stock levels.
+Purpose: Provides a real-time snapshot of current stock levels with calculated values.
 
-Columns: SnapshotID, SKU, Location, CurrentStock, LastUpdated
-Note: SnapshotID format is "SKU-LOCATION" (e.g., "ABC123-Shop", "ABC123-Warehouse")
+Columns: SnapshotID, SKU, Location, CurrentStock, LastUpdated, InventoryValue, DaysSinceLastSale, StockStatus, Last7DaysSales
+Note: 
+- SnapshotID format is "SKU-LOCATION" (e.g., "ABC123-Shop", "ABC123-Warehouse")
+- InventoryValue = CurrentStock × Price (from Product Master)
+- DaysSinceLastSale = Days since last sale (0 for today, 999 for no sales)
+- StockStatus = Red (0), Yellow (<20), Green (≥20)
+- Last7DaysSales = Total units sold in last 7 days (SKU-level, not location-specific)
 
 
 Product Inventory Tracker (Code Scanning) - Product Master.csv
@@ -18,7 +23,11 @@ Purpose: Stores master product information, including dimensions and pricing.
 Columns: Image, SKU, Product Name, Variation Name, Price, Stock, Product Weight (kg), Product Length (cm), Product Width (cm), Product Height (cm)
 
 Product Inventory Tracker (Code Scanning) - Sales Snapshot
-Purpose: Provides a real-time snapshot of current sales data.
+Purpose: Provides a real-time snapshot of current sales data with calculated values.
 
-Columns: SnapshotID, SKU, TotalSold, Last7Days, Last30Days, LastSoldDate, LastUpdated
+Columns: SnapshotID, SKU, TotalSold, Last7Days, Last30Days, LastSoldDate, LastUpdated, TodaySales, CumulativeValue, TopSellerRank
+Note:
+- TodaySales = Sales amount if sold today, 0 otherwise
+- CumulativeValue = TotalSold × Price (from Product Master)
+- TopSellerRank = Ranking based on TotalSold (1 = highest seller)
 
