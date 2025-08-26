@@ -559,7 +559,16 @@
         .then(response => response.json())
         .then(data => {
           if (data.status === "success" && data.data && data.data.length > 0) {
-            allProducts = data.data; // Store all products globally
+            // Transform the new object format to match expected structure
+            allProducts = data.data.map(product => ({
+              sku: product.SKU || product.sku || '',
+              name: product['Product Name'] || product.name || '',
+              variation: product['Variation Name'] || product.variation || '',
+              displayName: (product['Product Name'] || product.name || '') + 
+                          ((product['Variation Name'] || product.variation) ? ' - ' + (product['Variation Name'] || product.variation) : '')
+            })).filter(product => product.sku && product.sku.trim() !== '');
+            
+            console.log('Transformed products:', allProducts);
             
             // Update all sections with success state
             searchInputs.forEach(({ input, countDiv }) => {
@@ -730,6 +739,7 @@
       skuInput.value = product.sku;
       searchResults.style.display = 'none';
       
+      console.log(`Selected product:`, product);
       console.log(`Selected product: ${product.sku} - ${product.displayName}`);
     }
 
@@ -740,6 +750,7 @@
       transferSkuInput.value = product.sku;
       transferSearchResults.style.display = 'none';
       
+      console.log(`Selected transfer product:`, product);
       console.log(`Selected transfer product: ${product.sku} - ${product.displayName}`);
     }
 
@@ -1125,8 +1136,20 @@
         return;
       }
 
-      const headers = data[0];
-      const rows = data.slice(1);
+      // Check if data is in new object format or old array format
+      const isObjectFormat = data.length > 0 && typeof data[0] === 'object' && !Array.isArray(data[0]);
+      
+      let headers, rows;
+      
+      if (isObjectFormat) {
+        // New object format - extract headers from first object
+        headers = Object.keys(data[0]);
+        rows = data;
+      } else {
+        // Old array format - use first row as headers
+        headers = data[0];
+        rows = data.slice(1);
+      }
       
       // Find column indices for special handling - check multiple possible ID column names
       const possibleIdColumns = ['snapshotid', 'snapshot id', 'id', 'snapshot_id', 'snapshot-id'];
@@ -1149,7 +1172,21 @@
       let filteredHeaders, filteredRows;
       if (snapshotIdIndex !== -1) {
         filteredHeaders = headers.filter((_, index) => index !== snapshotIdIndex);
-        filteredRows = rows.map(row => row.filter((_, index) => index !== snapshotIdIndex));
+        if (isObjectFormat) {
+          // For object format, filter out the ID property
+          const idKey = headers[snapshotIdIndex];
+          filteredRows = rows.map(row => {
+            const newRow = {};
+            Object.keys(row).forEach(key => {
+              if (key !== idKey) {
+                newRow[key] = row[key];
+              }
+            });
+            return newRow;
+          });
+        } else {
+          filteredRows = rows.map(row => row.filter((_, index) => index !== snapshotIdIndex));
+        }
       } else {
         filteredHeaders = headers;
         filteredRows = rows;
@@ -1189,14 +1226,26 @@
       limitedRows.forEach((row, rowIndex) => {
         html += '<tr>';
         
-        row.forEach((cell, index) => {
-          // Format LastUpdated column if it exists using the CORRECTED index
-          let displayCell = cell;
-          if (index === filteredLastUpdatedIndex && filteredLastUpdatedIndex !== -1) {
-            displayCell = formatLastUpdated(cell);
-          }
-          html += `<td>${displayCell}</td>`;
-        });
+        if (isObjectFormat) {
+          // Object format - use property values
+          filteredHeaders.forEach(header => {
+            let displayCell = row[header] || '';
+            if (header === 'LastUpdated' || header === 'Last Updated') {
+              displayCell = formatLastUpdated(displayCell);
+            }
+            html += `<td>${displayCell}</td>`;
+          });
+        } else {
+          // Array format - use index-based access
+          row.forEach((cell, index) => {
+            // Format LastUpdated column if it exists using the CORRECTED index
+            let displayCell = cell;
+            if (index === filteredLastUpdatedIndex && filteredLastUpdatedIndex !== -1) {
+              displayCell = formatLastUpdated(cell);
+            }
+            html += `<td>${displayCell}</td>`;
+          });
+        }
         html += '</tr>';
       });
       html += '</tbody></table>';
@@ -1848,29 +1897,51 @@
         fetch(apiBase + "?action=getInventorySnapshot")
           .then(response => response.json())
           .then(data => {
-            if (data.status === "success" && data.data && data.data.length > 1) {
-              const headers = data.data[0];
-              const rows = data.data.slice(1);
+            if (data.status === "success" && data.data && data.data.length > 0) {
+              const inventoryData = data.data;
               
-              // Find the SKU and location columns
-              const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
-              const locationIndex = headers.findIndex(h => h.toLowerCase().includes('location'));
-              const quantityIndex = headers.findIndex(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('stock'));
+              // Check if data is in new object format or old array format
+              const isObjectFormat = inventoryData.length > 0 && typeof inventoryData[0] === 'object' && !Array.isArray(inventoryData[0]);
               
-              if (skuIndex !== -1 && locationIndex !== -1 && quantityIndex !== -1) {
-                // Find the row with matching SKU and location
-                const matchingRow = rows.find(row => 
-                  row[skuIndex] === sku && row[locationIndex] === location
+              let matchingRow;
+              
+              if (isObjectFormat) {
+                // New object format - find by property names
+                matchingRow = inventoryData.find(row => 
+                  row.SKU === sku && row.Location === location
                 );
                 
                 if (matchingRow) {
-                  const currentStock = matchingRow[quantityIndex] || 0;
+                  const currentStock = matchingRow.CurrentStock || 0;
                   currentStockValue.textContent = currentStock;
                 } else {
                   currentStockValue.textContent = '0';
                 }
               } else {
-                currentStockValue.textContent = 'N/A';
+                // Old array format - use index-based access
+                const headers = inventoryData[0];
+                const rows = inventoryData.slice(1);
+                
+                // Find the SKU and location columns
+                const skuIndex = headers.findIndex(h => h.toLowerCase().includes('sku'));
+                const locationIndex = headers.findIndex(h => h.toLowerCase().includes('location'));
+                const quantityIndex = headers.findIndex(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('stock'));
+                
+                if (skuIndex !== -1 && locationIndex !== -1 && quantityIndex !== -1) {
+                  // Find the row with matching SKU and location
+                  matchingRow = rows.find(row => 
+                    row[skuIndex] === sku && row[locationIndex] === location
+                  );
+                  
+                  if (matchingRow) {
+                    const currentStock = matchingRow[quantityIndex] || 0;
+                    currentStockValue.textContent = currentStock;
+                  } else {
+                    currentStockValue.textContent = '0';
+                  }
+                } else {
+                  currentStockValue.textContent = 'N/A';
+                }
               }
               
               // Hide loading, show content

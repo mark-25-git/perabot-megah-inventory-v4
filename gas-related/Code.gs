@@ -1,3 +1,6 @@
+/*************************************************
+ * CONFIG
+ *************************************************/
 var SPREADSHEET_ID = "1t8eqdoMh9_1l6DnvD_tqagMWWz0Ctci-_0nz4tqP86g";
 var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
@@ -6,9 +9,9 @@ var snapshotSheet = ss.getSheetByName("Inventory Snapshot");
 var salesSnapshotSheet = ss.getSheetByName("Sales Snapshot");
 var productMasterSheet = ss.getSheetByName("Product Master");
 
-// ---------------------------
-// Global log collection
-// ---------------------------
+/*************************************************
+ * GLOBAL LOG COLLECTION
+ *************************************************/
 var debugLogs = [];
 
 function addLog(message) {
@@ -26,90 +29,164 @@ function clearLogs() {
   debugLogs = [];
 }
 
-// ---------------------------
-// WebApp Entry
-// ---------------------------
+/*************************************************
+ * API ENTRY POINT
+ *************************************************/
 function doGet(e) {
   var action = e.parameter.action;
 
-  if (action === "getInventorySnapshot") return getInventorySnapshot();
+  if (action === "getInventorySnapshot") return sendJSON(getInventorySnapshotData());
+  if (action === "getSalesSnapshot") return sendJSON(getSalesSnapshotData());
+  if (action === "getProducts") return sendJSON(getProductMasterData());
   if (action === "addInventoryLog") return addInventoryLog(e);
-  if (action === "testSheets") return testSheetConnections();
-  if (action === "getProducts") return getProducts();
-  if (action === "getLogs") return outputJSON({status:"success", logs: getLogs()});
+  if (action === "testSheets") return sendJSON(testSheetConnections());
+  if (action === "resetTodaySales") return sendJSON(resetTodaySales());
+  if (action === "setupDailyReset") return sendJSON(setupDailyReset());
+  if (action === "updateSnapshots") return sendJSON(updateSnapshots());
+  if (action === "testSalesOperation") return sendJSON(testSalesOperation());
+  if (action === "testSalesSnapshotStructure") return sendJSON(testSalesSnapshotStructure());
+  if (action === "fixCorruptedTodaySales") return sendJSON(fixCorruptedTodaySales());
+  if (action === "getLogs") return sendJSON({status:"success", logs: getLogs()});
   if (action === "clearLogs") {
     clearLogs();
-    return outputJSON({status:"success", message:"Logs cleared"});
+    return sendJSON({status:"success", message:"Logs cleared"});
   }
 
-  return outputJSON({status:"error", message:"Unknown action"});
+  return sendJSON({status:"error", message:"Unknown action"});
 }
 
-// ---------------------------
-// Test Sheet Connections
-// ---------------------------
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action;
+
+    if (action === "addTransaction") {
+      return sendJSON(addTransaction(data));
+    }
+
+    return sendJSON({status:"error", message:"Invalid POST action"});
+  } catch (error) {
+    addLog("Error in doPost: " + error.toString());
+    return sendJSON({status:"error", message:"Invalid JSON data"});
+  }
+}
+
+/*************************************************
+ * HELPERS
+ *************************************************/
+function sendJSON(obj) {
+  return ContentService.createTextOutput(
+    JSON.stringify(obj)
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSheetData(sheet) {
+  if (!sheet) return [];
+  var range = sheet.getDataRange();
+  var values = range.getValues();
+  if (values.length === 0) return [];
+  
+  var headers = values.shift();
+  return values.map(function (row) {
+    var obj = {};
+    headers.forEach(function (h, i) {
+      obj[h] = row[i];
+    });
+    return obj;
+  });
+}
+
+/*************************************************
+ * TEST SHEET CONNECTIONS
+ *************************************************/
 function testSheetConnections() {
   addLog("Testing sheet connections...");
   
   var results = {
     logSheet: logSheet ? "Connected" : "NULL - Check sheet name 'Inventory Log'",
     snapshotSheet: snapshotSheet ? "Connected" : "NULL - Check sheet name 'Inventory Snapshot'",
-    salesSnapshotSheet: salesSnapshotSheet ? "Connected" : "NULL - Check sheet name 'Sales Snapshot'"
+    salesSnapshotSheet: salesSnapshotSheet ? "Connected" : "NULL - Check sheet name 'Sales Snapshot'",
+    productMasterSheet: productMasterSheet ? "Connected" : "NULL - Check sheet name 'Product Master'"
   };
   
-  addLog("Sheet connection test results: " + JSON.stringify(results));
+  if (logSheet) addLog("Inventory Log sheet has " + logSheet.getLastRow() + " rows");
+  if (snapshotSheet) addLog("Inventory Snapshot sheet has " + snapshotSheet.getLastRow() + " rows");
+  if (salesSnapshotSheet) addLog("Sales Snapshot sheet has " + salesSnapshotSheet.getLastRow() + " rows");
+  if (productMasterSheet) addLog("Product Master sheet has " + productMasterSheet.getLastRow() + " rows");
   
-  if (logSheet) {
-    var logRowCount = logSheet.getLastRow();
-    addLog("Inventory Log sheet has " + logRowCount + " rows");
-  }
-  
-  if (snapshotSheet) {
-    var snapshotRowCount = snapshotSheet.getLastRow();
-    addLog("Inventory Snapshot sheet has " + snapshotRowCount + " rows");
-    if (snapshotRowCount > 0) {
-      var headers = snapshotSheet.getRange(1, 1, 1, snapshotSheet.getLastColumn()).getValues()[0];
-      addLog("Inventory Snapshot headers: " + JSON.stringify(headers));
-    }
-  }
-  
-  if (salesSnapshotSheet) {
-    var salesRowCount = salesSnapshotSheet.getLastRow();
-    addLog("Sales Snapshot sheet has " + salesRowCount + " rows");
-  }
-  
-  return outputJSON({
+  return {
     status: "success", 
     message: "Sheet connection test completed",
-    results: results
-  });
+    results: results,
+    logs: getLogs()
+  };
 }
 
-// ---------------------------
-// Get Inventory Snapshot
-// ---------------------------
-function getInventorySnapshot() {
-  if (!snapshotSheet) return outputJSON({status:"error", message:"Inventory Snapshot sheet not found"});
-  var data = snapshotSheet.getDataRange().getValues();
-  return outputJSON({status:"success", data:data});
+/*************************************************
+ * INVENTORY SNAPSHOT
+ *************************************************/
+function getInventorySnapshotData() {
+  if (!snapshotSheet) return {status:"error", message:"Inventory Snapshot sheet not found"};
+  
+  try {
+    var data = getSheetData(snapshotSheet);
+    addLog("Retrieved " + data.length + " inventory snapshot records");
+    return {status:"success", data: data, count: data.length};
+  } catch (error) {
+    addLog("Error getting inventory snapshot: " + error.toString());
+    return {status:"error", message:"Failed to retrieve inventory snapshot"};
+  }
 }
 
-// ---------------------------
-// Add Inventory Log (supports bulk)
-// ---------------------------
+/*************************************************
+ * SALES SNAPSHOT
+ *************************************************/
+function getSalesSnapshotData() {
+  if (!salesSnapshotSheet) return {status:"error", message:"Sales Snapshot sheet not found"};
+  
+  try {
+    var data = getSheetData(salesSnapshotSheet);
+    addLog("Retrieved " + data.length + " sales snapshot records");
+    return {status:"success", data: data, count: data.length};
+  } catch (error) {
+    addLog("Error getting sales snapshot: " + error.toString());
+    return {status:"error", message:"Failed to retrieve sales snapshot"};
+  }
+}
+
+/*************************************************
+ * PRODUCT MASTER
+ *************************************************/
+function getProductMasterData() {
+  if (!productMasterSheet) return {status:"error", message:"Product Master sheet not found"};
+  
+  try {
+    var data = getSheetData(productMasterSheet);
+    var products = data.filter(product => product.SKU && String(product.SKU).trim() !== "");
+    
+    addLog("Retrieved " + products.length + " products from Product Master sheet");
+    return {status:"success", data: products, count: products.length};
+  } catch (error) {
+    addLog("Error getting products: " + error.toString());
+    return {status:"error", message:"Failed to retrieve products"};
+  }
+}
+
+/*************************************************
+ * ADD INVENTORY LOG (LEGACY SUPPORT)
+ *************************************************/
 function addInventoryLog(e) {
   addLog("addInventoryLog called with parameters: " + JSON.stringify(e.parameter));
   
   if (!logSheet) {
     addLog("ERROR: Inventory Log sheet not found");
-    return outputJSON({status:"error", message:"Inventory Log sheet not found"});
+    return sendJSON({status:"error", message:"Inventory Log sheet not found"});
   }
 
-  // Expect bulk data as JSON string
-  var bulkData = e.parameter.data; // JSON array: [{sku, quantity, mode, source, destination, user, notes}, ...]
+  var bulkData = e.parameter.data;
   if (!bulkData) {
     addLog("ERROR: No data parameter provided");
-    return outputJSON({status:"error", message:"No data provided"});
+    return sendJSON({status:"error", message:"No data provided"});
   }
 
   var entries;
@@ -118,363 +195,1320 @@ function addInventoryLog(e) {
     addLog("Parsed bulk data: " + JSON.stringify(entries));
   } catch(err) {
     addLog("ERROR: Failed to parse JSON: " + err.message);
-    return outputJSON({status:"error", message:"Invalid JSON"});
+    return sendJSON({status:"error", message:"Invalid JSON"});
   }
 
-  var newLogRows = entries.map(function(item){
-    var logQuantity = item.quantity;
-    
-    // For ADJUSTMENT mode, calculate the actual change needed instead of logging the new total
-    if (item.mode === 'ADJUSTMENT' && item.source && (item.source === 'Shop' || item.source === 'Warehouse')) {
-      // Get current stock from snapshot to calculate the change
-      var currentStock = 0;
-      if (snapshotSheet) {
-        var snapshotData = snapshotSheet.getDataRange().getValues();
-        var headers = snapshotData.shift();
-        var skuIndex = headers.indexOf("SKU");
-        var locationIndex = headers.indexOf("Location");
-        var stockIndex = headers.indexOf("CurrentStock");
-        
-        if (skuIndex !== -1 && locationIndex !== -1 && stockIndex !== -1) {
-          for (var i = 0; i < snapshotData.length; i++) {
-            if (snapshotData[i][skuIndex] === item.sku && snapshotData[i][locationIndex] === item.source) {
-              currentStock = parseInt(snapshotData[i][stockIndex], 10) || 0;
-              break;
-            }
-          }
-        }
+  var newLogRows = [];
+  var inventoryUpdates = [];
+  var salesUpdates = [];
+
+  // Get current snapshot data to calculate ADJUSTMENT changes
+  var currentInventoryMap = new Map();
+  if (snapshotSheet) {
+    var snapshotData = snapshotSheet.getDataRange().getValues();
+    if (snapshotData.length > 1) {
+      var headers = snapshotData.shift();
+      var skuIndex = headers.indexOf("SKU");
+      var locationIndex = headers.indexOf("Location");
+      var stockIndex = headers.indexOf("CurrentStock");
+      if (skuIndex !== -1 && locationIndex !== -1 && stockIndex !== -1) {
+        snapshotData.forEach(function(row) {
+          currentInventoryMap.set(row[skuIndex] + "|" + row[locationIndex], parseInt(row[stockIndex], 10) || 0);
+        });
       }
-      
-      var adjustment = parseInt(item.quantity, 10) - currentStock;
-      logQuantity = adjustment;
-      
-      addLog("ADJUSTMENT: Current stock=" + currentStock + ", New total=" + item.quantity + ", Adjustment=" + adjustment + " at location " + item.source);
-      addLog("ADJUSTMENT: Logging adjustment quantity " + adjustment + " (not new total " + item.quantity + ")");
-      addLog("ADJUSTMENT: User entered " + item.quantity + " but log will show " + adjustment + " (the actual change)");
+    }
+  }
+
+  entries.forEach(function(item){
+    var logQuantity = parseInt(item.quantity, 10) || 0;
+    
+    // For ADJUSTMENT mode, calculate the actual change needed and log that
+    if (item.mode === 'ADJUSTMENT' && item.source && (item.source === 'Shop' || item.source === 'Warehouse')) {
+      var currentStock = currentInventoryMap.has(item.sku + "|" + item.source) ? currentInventoryMap.get(item.sku + "|" + item.source) : 0;
+      var newTotal = parseInt(item.quantity, 10) || 0;
+      logQuantity = newTotal - currentStock;
+      addLog("ADJUSTMENT: New total=" + newTotal + ", Current stock=" + currentStock + ", Log quantity=" + logQuantity);
     }
     
-    return [
+    var newRow = [
       Utilities.getUuid(),
       new Date(),
       item.sku || "",
-      logQuantity, // Use calculated adjustment quantity for ADJUSTMENT mode
+      logQuantity,
       item.mode || "",
       item.source || "",
       item.destination || "",
       item.user || "",
       item.notes || ""
     ];
-  });
+    newLogRows.push(newRow);
 
-  addLog("Prepared log rows: " + JSON.stringify(newLogRows));
+    // Prepare data for snapshot updates - FIXED: Properly structure updates
+    if (item.mode === 'SALE') {
+      // For sales, add to sales updates and inventory updates
+      salesUpdates.push({
+        sku: item.sku,
+        qty: Math.abs(logQuantity), // Sales quantity (positive for calculations)
+        timestamp: item.timestamp || new Date() // Use provided timestamp or current date
+      });
+      
+      // Add inventory update for source location (decrease stock)
+      inventoryUpdates.push({
+        sku: item.sku,
+        location: item.source,
+        qty: -Math.abs(logQuantity) // Negative for sales (decrease stock)
+      });
+      
+      addLog("SALE processed: SKU=" + item.sku + ", Qty=" + Math.abs(logQuantity) + ", Location=" + item.source);
+      
+    } else if (item.mode === 'TRANSFER') {
+      // For transfers, decrease source and increase destination
+      inventoryUpdates.push({
+        sku: item.sku,
+        location: item.source,
+        qty: -Math.abs(logQuantity)
+      });
+      inventoryUpdates.push({
+        sku: item.sku,
+        location: item.destination,
+        qty: Math.abs(logQuantity)
+      });
+      
+    } else if (item.mode === 'RECEIVING') {
+      // For receiving, increase destination location
+      inventoryUpdates.push({
+        sku: item.sku,
+        location: item.destination,
+        qty: Math.abs(logQuantity)
+      });
+      
+    } else if (item.mode === 'ADJUSTMENT') {
+      // For adjustments, set exact stock level
+      inventoryUpdates.push({
+        sku: item.sku,
+        location: item.source,
+        qty: logQuantity // This is the actual change needed
+      });
+    }
+  });
 
   // Append all logs at once
-  logSheet.getRange(logSheet.getLastRow()+1, 1, newLogRows.length, newLogRows[0].length).setValues(newLogRows);
-  addLog("Added " + newLogRows.length + " rows to Inventory Log sheet");
+  if (newLogRows.length > 0) {
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, newLogRows.length, newLogRows[0].length).setValues(newLogRows);
+    addLog("Added " + newLogRows.length + " rows to Inventory Log sheet");
+  }
 
-  // Update Snapshots in batch
-  addLog("Calling updateInventorySnapshot...");
-  updateInventorySnapshot(newLogRows);
+  // FIXED: Update snapshots with proper data
+  if (inventoryUpdates.length > 0) {
+    addLog("Updating inventory snapshot with " + inventoryUpdates.length + " updates");
+    updateInventorySnapshot(inventoryUpdates);
+  }
   
-  addLog("Calling updateSalesSnapshot...");
-  updateSalesSnapshot(newLogRows);
+  if (salesUpdates.length > 0) {
+    addLog("Updating sales snapshot with " + salesUpdates.length + " updates");
+    updateSalesSnapshot(salesUpdates);
+    
+    // Also update inventory sales fields for Shop locations
+    addLog("Updating inventory sales fields");
+    updateInventorySalesFields(salesUpdates);
+  }
 
   addLog("addInventoryLog completed successfully");
-  return outputJSON({status:"success", message:"Logs added and snapshots updated", count:newLogRows.length});
+  return sendJSON({status:"success", message:"Logs added and snapshots updated", count:newLogRows.length});
 }
 
-// ---------------------------
-// Update Inventory Snapshot
-// ---------------------------
-function updateInventorySnapshot(latestEntries) {
+/*************************************************
+ * UPDATE INVENTORY SNAPSHOT
+ *************************************************/
+function updateInventorySnapshot(inventoryUpdates) {
   if (!snapshotSheet) {
-    addLog("ERROR: Snapshot sheet is null - check sheet name 'Inventory Snapshot'");
+    addLog("ERROR: Inventory Snapshot sheet not found");
     return;
   }
 
-  addLog("Starting updateInventorySnapshot with " + latestEntries.length + " entries");
+  if (inventoryUpdates.length === 0) {
+    addLog("No inventory updates to process.");
+    return;
+  }
 
-  // Load existing snapshot
+  addLog("Starting updateInventorySnapshot with " + inventoryUpdates.length + " updates");
+
   var snapshotData = snapshotSheet.getDataRange().getValues();
   var headers = snapshotData.shift();
-  addLog("Snapshot headers: " + JSON.stringify(headers));
-  
-  // Find column indices dynamically
-    var skuIndex = headers.indexOf("SKU");
-    var locationIndex = headers.indexOf("Location");
-    var stockIndex = headers.indexOf("CurrentStock");
+  var skuIndex = headers.indexOf("SKU");
+  var locationIndex = headers.indexOf("Location");
+  var stockIndex = headers.indexOf("CurrentStock");
   var updatedIndex = headers.indexOf("LastUpdated");
   
-  addLog("Column indices - SKU: " + skuIndex + ", Location: " + locationIndex + ", Stock: " + stockIndex + ", Updated: " + updatedIndex);
-  
   if (skuIndex === -1 || locationIndex === -1 || stockIndex === -1 || updatedIndex === -1) {
-    addLog("ERROR: Required columns not found in Inventory Snapshot");
+    addLog("ERROR: Required columns not found in Inventory Snapshot.");
     return;
   }
 
+  // Create a map of existing snapshot data
   var snapshotMap = new Map();
-
-  snapshotData.forEach((row,i)=>{
-    var key = row[skuIndex] + "|" + row[locationIndex]; // SKU|Location
-    snapshotMap.set(key, {stock:parseInt(row[stockIndex],10)||0, rowIndex:i+2});
-    addLog("Existing snapshot entry: " + key + " = " + row[stockIndex] + " (row " + (i+2) + ")");
+  snapshotData.forEach((row, i) => {
+    var key = row[skuIndex] + "|" + row[locationIndex];
+    snapshotMap.set(key, {
+      stock: parseInt(row[stockIndex], 10) || 0, 
+      rowIndex: i + 2,
+      sku: row[skuIndex],
+      location: row[locationIndex]
+    });
   });
 
+  // Process all inventory updates
   var pendingUpdates = new Map();
-
-  latestEntries.forEach(entry=>{
-    var [id, ts, sku, qty, mode, source, dest, user, notes] = entry;
-    qty = parseInt(qty,10) || 0;
+  inventoryUpdates.forEach(update => {
+    var key = update.sku + "|" + update.location;
+    var current = pendingUpdates.has(key) ? pendingUpdates.get(key) : {stock: snapshotMap.has(key) ? snapshotMap.get(key).stock : 0};
+    current.stock += update.qty;
+    current.sku = update.sku;
+    current.location = update.location;
+    pendingUpdates.set(key, current);
     
-    addLog("Processing entry: SKU=" + sku + ", Mode=" + mode + ", Qty=" + qty + ", Source=" + source + ", Dest=" + dest);
-    
-    // Validate required data for each mode
-    if (!sku) {
-      addLog("ERROR: SKU is missing for entry");
-      return;
-    }
-    
-    if (!mode) {
-      addLog("ERROR: Mode is missing for SKU " + sku);
-      return;
-    }
-    
-    // Remove global quantity validation - handle it per mode instead
-    // if (qty <= 0) {
-    //   addLog("ERROR: Quantity must be greater than 0 for SKU " + sku);
-    //   return;
-    // }
-
-    var applyChange = function(s, loc, change, isAdjustment = false){
-      if(!s || !loc) {
-        addLog("Skipping change - SKU or Location is empty: SKU=" + s + ", Location=" + loc);
-        return;
-      }
-      var key = s+"|"+loc;
-      var newStock = change;
-      if(pendingUpdates.has(key)) newStock += pendingUpdates.get(key).stock;
-      else if(snapshotMap.has(key)) newStock += snapshotMap.get(key).stock;
-      
-      // For ADJUSTMENT mode, allow the exact stock level (even negative)
-      // For other modes, ensure stock doesn't go below 0
-      if (!isAdjustment) {
-        newStock = Math.max(0, newStock);
-        addLog("Non-adjustment mode: Ensuring stock doesn't go below 0");
-      } else {
-        addLog("Adjustment mode: Allowing exact stock level (including negative if needed)");
-      }
-      
-      addLog("Applying change: SKU=" + s + ", Location=" + loc + ", Change=" + change + ", New Stock=" + newStock);
-      
-      pendingUpdates.set(key, {sku:s, location:loc, stock:newStock, rowIndex:snapshotMap.has(key)? snapshotMap.get(key).rowIndex:-1});
-    };
-
-    switch(mode){
-      case 'RECEIVING':
-        if (qty <= 0) {
-          addLog("RECEIVING: Quantity must be greater than 0 for SKU " + sku);
-          return;
-        }
-        if(dest && (dest === 'Shop' || dest === 'Warehouse')){
-          addLog("RECEIVING: Adding " + qty + " to " + dest);
-          applyChange(sku, dest, qty);
-        } else {
-          addLog("RECEIVING: Invalid destination " + dest + " for SKU " + sku);
-          }
-          break;
-          
-      case 'TRANSFER':
-        if (qty <= 0) {
-          addLog("TRANSFER: Quantity must be greater than 0 for SKU " + sku);
-          return;
-        }
-        if(source && dest && source !== dest){
-          addLog("TRANSFER: Moving " + qty + " from " + source + " to " + dest);
-          applyChange(sku, source, -qty);
-          applyChange(sku, dest, qty);
-        } else {
-          addLog("TRANSFER: Invalid source/destination - Source: " + source + ", Dest: " + dest);
-          }
-          break;
-          
-      case 'ADJUSTMENT':
-        // For ADJUSTMENT, allow any quantity (positive, negative, or zero)
-        // This allows reducing stock, increasing stock, or setting to zero
-        // No quantity validation needed - negative adjustments are valid for corrections
-        if(source && (source === 'Shop' || source === 'Warehouse')){
-          addLog("ADJUSTMENT: Applying adjustment of " + qty + " at location " + source);
-          if (qty < 0) {
-            addLog("ADJUSTMENT: Negative adjustment detected - this will reduce stock");
-          } else if (qty > 0) {
-            addLog("ADJUSTMENT: Positive adjustment detected - this will increase stock");
-          } else {
-            addLog("ADJUSTMENT: Zero adjustment - no stock change");
-          }
-          
-          // For ADJUSTMENT mode, we need to handle it differently than incremental changes
-          // The qty is the adjustment amount, so we need to apply it to current stock
-          var key = sku + "|" + source;
-          var currentStock = snapshotMap.has(key) ? snapshotMap.get(key).stock : 0;
-          var newStock = currentStock + qty; // Add the adjustment to current stock
-          
-          addLog("ADJUSTMENT: Current stock=" + currentStock + ", Adjustment=" + qty + ", New stock will be=" + newStock);
-          
-          // Directly update the pendingUpdates map for ADJUSTMENT mode
-          pendingUpdates.set(key, {
-            sku: sku, 
-            location: source, 
-            stock: newStock, 
-            rowIndex: snapshotMap.has(key) ? snapshotMap.get(key).rowIndex : -1
-          });
-          
-          addLog("ADJUSTMENT: Added to pending updates: " + key + " -> stock " + newStock);
-        } else {
-          addLog("ADJUSTMENT: Invalid source location " + source + " for SKU " + sku + " - must be Shop or Warehouse");
-          }
-          break;
-          
-      case 'SALE':
-        if (qty <= 0) {
-          addLog("SALE: Quantity must be greater than 0 for SKU " + sku);
-          return;
-        }
-        // For SALE, use source location (where the sale is happening)
-        if(source === 'Shop'){
-          addLog("SALE: Reducing Shop stock by " + qty);
-          applyChange(sku, 'Shop', -qty);
-        } else {
-          addLog("SALE: Invalid source " + source + " - sales must be from Shop");
-          }
-          break;
-        
-      default:
-        addLog("Unknown mode: " + mode + " for SKU " + sku);
-    }
+    addLog("Processing update: SKU=" + update.sku + ", Location=" + update.location + ", Change=" + update.qty + ", New Total=" + current.stock);
   });
 
-  addLog("Pending updates: " + JSON.stringify([...pendingUpdates]));
-
-  // Batch write updates
+  var rowsToUpdate = [];
   var rowsToAppend = [];
-  var updateCount = 0;
-  var appendCount = 0;
   
-  pendingUpdates.forEach((data,key)=>{
-    addLog("Processing update for " + key + ": stock=" + data.stock + ", rowIndex=" + data.rowIndex);
+  pendingUpdates.forEach((data, key) => {
+    var sku = data.sku;
+    var location = data.location;
+    var newStock = Math.max(0, data.stock); // Prevent negative stock
     
-    if(data.rowIndex !== -1){
-      addLog("Updating existing row " + data.rowIndex + " for " + key + " to stock " + data.stock);
-      snapshotSheet.getRange(data.rowIndex, stockIndex + 1).setValue(data.stock);
-      snapshotSheet.getRange(data.rowIndex, updatedIndex + 1).setValue(new Date());
-      updateCount++;
+    var existingRecord = snapshotMap.get(key);
+    
+    if (existingRecord) {
+      // Update existing row
+      rowsToUpdate.push({
+        rowIndex: existingRecord.rowIndex,
+        values: [newStock, new Date()]
+      });
+      addLog("Will update existing row for " + sku + " at " + location + ": Stock=" + newStock);
     } else {
-      addLog("Will append new row for " + key + " with stock " + data.stock);
-      rowsToAppend.push([key, data.sku, data.location, data.stock, new Date()]);
-      appendCount++;
+      // Append new row - need to create full row data
+      var newRow = [
+        key, // SnapshotID
+        sku, 
+        location, 
+        newStock, 
+        new Date(), // LastUpdated
+        0, // InventoryValue (will be calculated later)
+        "", // DaysSinceLastSale
+        "Green", // StockStatus (will be calculated later)
+        0 // Last7DaysSales
+      ];
+      rowsToAppend.push(newRow);
+      addLog("Will append new row for " + sku + " at " + location + ": Stock=" + newStock);
     }
   });
 
-  if(rowsToAppend.length > 0){
-    addLog("Appending " + rowsToAppend.length + " new rows to snapshot");
-    snapshotSheet.getRange(snapshotSheet.getLastRow()+1, 1, rowsToAppend.length, 5).setValues(rowsToAppend);
+  // Batch update existing rows
+  if (rowsToUpdate.length > 0) {
+    addLog("Updating " + rowsToUpdate.length + " existing rows");
+    rowsToUpdate.forEach(row => {
+      snapshotSheet.getRange(row.rowIndex, stockIndex + 1, 1, 2).setValues([row.values]);
+    });
   }
   
-  addLog("updateInventorySnapshot completed successfully");
-  addLog("Summary: " + updateCount + " existing rows updated, " + appendCount + " new rows added");
+  // Batch append new rows
+  if (rowsToAppend.length > 0) {
+    addLog("Appending " + rowsToAppend.length + " new rows");
+    snapshotSheet.getRange(snapshotSheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
+  }
+
+  // Now update calculated columns (InventoryValue, StockStatus) for affected rows
+  updateInventoryCalculatedColumns(pendingUpdates);
+
+  addLog("Inventory Snapshot updated successfully. " + rowsToUpdate.length + " rows updated, " + rowsToAppend.length + " rows appended.");
 }
 
-// ---------------------------
-// Update Sales Snapshot
-// ---------------------------
-function updateSalesSnapshot(latestEntries){
-  if(!salesSnapshotSheet) return;
+/*************************************************
+ * UPDATE INVENTORY CALCULATED COLUMNS
+ *************************************************/
+function updateInventoryCalculatedColumns(inventoryUpdates) {
+  if (!snapshotSheet || !productMasterSheet) {
+    addLog("ERROR: Required sheets not found for calculated columns update");
+    return;
+  }
 
-  // Load existing sales snapshot
-  var data = salesSnapshotSheet.getDataRange().getValues();
-  var headers = data.shift();
-  var map = new Map();
-  data.forEach((row,i)=>{
-    map.set(row[1], {total:parseInt(row[2],10)||0, last7:parseInt(row[3],10)||0, last30:parseInt(row[4],10)||0, lastSold:row[5], rowIndex:i+2});
+  addLog("Starting updateInventoryCalculatedColumns for " + inventoryUpdates.size + " inventory items");
+
+  // Get product master data for pricing
+  var productData = getSheetData(productMasterSheet);
+  var productMap = new Map();
+  productData.forEach(product => {
+    if (product.SKU) {
+      productMap.set(product.SKU, Number(product.Price) || 0);
+    }
+  });
+
+  // Get current snapshot data
+  var snapshotData = snapshotSheet.getDataRange().getValues();
+  var headers = snapshotData.shift();
+  var skuIndex = headers.indexOf("SKU");
+  var locationIndex = headers.indexOf("Location");
+  var stockIndex = headers.indexOf("CurrentStock");
+  var valueIndex = headers.indexOf("InventoryValue");
+  var statusIndex = headers.indexOf("StockStatus");
+  
+  if (skuIndex === -1 || stockIndex === -1 || valueIndex === -1 || statusIndex === -1) {
+    addLog("ERROR: Required calculated columns not found in Inventory Snapshot");
+    return;
+  }
+
+  // Update calculated columns for affected inventory items
+  inventoryUpdates.forEach((data, key) => {
+    var [sku, location] = key.split('|');
+    
+    // Find the row in snapshot sheet
+    for (var i = 0; i < snapshotData.length; i++) {
+      var row = snapshotData[i];
+      if (row[skuIndex] === sku && row[locationIndex] === location) {
+        var rowIndex = i + 2; // +2 because we shifted headers and arrays are 0-indexed
+        var currentStock = parseInt(row[stockIndex], 10) || 0;
+        var unitPrice = productMap.get(sku) || 0;
+        
+        // Calculate InventoryValue
+        var inventoryValue = currentStock * unitPrice;
+        snapshotSheet.getRange(rowIndex, valueIndex + 1).setValue(inventoryValue);
+        
+        // Calculate StockStatus
+        var stockStatus = "Green";
+        if (currentStock === 0) {
+          stockStatus = "Red";
+        } else if (currentStock < 20) {
+          stockStatus = "Yellow";
+        }
+        snapshotSheet.getRange(rowIndex, statusIndex + 1).setValue(stockStatus);
+        
+        addLog("Updated calculated columns for " + sku + " at " + location + ": Value=" + inventoryValue + ", Status=" + stockStatus);
+        break;
+      }
+    }
+  });
+
+  addLog("Inventory calculated columns update completed");
+}
+
+/*************************************************
+ * CALCULATE ROLLING WINDOW SALES
+ *************************************************/
+function calculateRollingWindowSales(sku, logs, today) {
+  var sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+  var thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+  
+  var last7DaysTotal = 0;
+  var last30DaysTotal = 0;
+  
+  // Calculate sales in the last 7 and 30 days
+  logs.forEach(function (log) {
+    if (log["Mode"] === "SALE" && log["SourceLocation"] === "Shop" && log["SKU"] === sku) {
+      var saleDate = log["Timestamp"] || today;
+      var qty = Number(log["Quantity"]) || 0;
+      
+      // Last 7 days
+      if (saleDate >= sevenDaysAgo) {
+        last7DaysTotal += qty;
+      }
+      
+      // Last 30 days
+      if (saleDate >= thirtyDaysAgo) {
+        last30DaysTotal += qty;
+      }
+    }
+  });
+  
+  return {
+    last7Days: last7DaysTotal,
+    last30Days: last30DaysTotal
+  };
+}
+
+/*************************************************
+ * UPDATE SALES SNAPSHOT
+ *************************************************/
+function updateSalesSnapshot(salesUpdates) {
+  if (!salesSnapshotSheet) {
+    addLog("ERROR: Sales Snapshot sheet not found");
+    return;
+  }
+  
+  if (salesUpdates.length === 0) {
+    addLog("No sales updates to process");
+    return;
+  }
+
+  addLog("Starting updateSalesSnapshot with " + salesUpdates.length + " entries");
+
+  var salesData = salesSnapshotSheet.getDataRange().getValues();
+  var headers = salesData.shift();
+  
+  // Find column indices dynamically
+  var skuIndex = headers.indexOf("SKU");
+  var totalSoldIndex = headers.indexOf("TotalSold");
+  var last7DaysIndex = headers.indexOf("Last7Days");
+  var last30DaysIndex = headers.indexOf("Last30Days");
+  var lastSoldDateIndex = headers.indexOf("LastSoldDate");
+  var lastUpdatedIndex = headers.indexOf("LastUpdated");
+  var todaySalesIndex = headers.indexOf("TodaySales");
+  var cumulativeValueIndex = headers.indexOf("CumulativeValue");
+  var topSellerRankIndex = headers.indexOf("TopSellerRank");
+  
+  if (skuIndex === -1) {
+    addLog("ERROR: SKU column not found in Sales Snapshot sheet");
+    return;
+  }
+  
+  // Create a map of existing sales data
+  var salesMap = new Map();
+  salesData.forEach((row, i) => {
+    var sku = row[skuIndex];
+    if (sku && sku.trim() !== "") {
+      salesMap.set(sku, {
+        total: parseInt(row[totalSoldIndex], 10) || 0,
+        last7: parseInt(row[last7DaysIndex], 10) || 0,
+        last30: parseInt(row[last30DaysIndex], 10) || 0,
+        lastSold: row[lastSoldDateIndex] || null,
+        todaySales: parseFloat(row[todaySalesIndex]) || 0,
+        cumulativeValue: parseFloat(row[cumulativeValueIndex]) || 0,
+        topSellerRank: row[topSellerRankIndex] || "",
+        rowIndex: i + 2
+      });
+    }
   });
 
   var today = new Date();
+  var todayStr = today.toDateString();
 
-  latestEntries.forEach(entry=>{
-    var [id, ts, sku, qty, mode, source, dest, user, notes] = entry;
-    if(mode!=='SALE') return;
-    qty = parseInt(qty,10)||0;
-    ts = new Date(ts);
+  // Process each sales update
+  salesUpdates.forEach(update => {
+    var sku = update.sku;
+    var qty = update.qty;
+    var ts = update.timestamp || today;
+    var saleDateStr = ts.toDateString();
 
-    var rec = map.has(sku)? map.get(sku) : {total:0,last7:0,last30:0,lastSold:null,rowIndex:-1};
+    addLog("Processing SALE entry: SKU=" + sku + ", Qty=" + qty + ", Date=" + saleDateStr + ", Today=" + todayStr + ", Timestamp=" + ts);
+
+    var rec = salesMap.has(sku) ? salesMap.get(sku) : {
+      total: 0, 
+      last7: 0, 
+      last30: 0, 
+      lastSold: null, 
+      todaySales: 0, 
+      cumulativeValue: 0,
+      topSellerRank: "",
+      rowIndex: -1
+    };
+    
+    // Update total sold (cumulative)
     rec.total += qty;
-    rec.last7 += qty; // 可以后续改为7天滚动窗口计算
-    rec.last30 += qty; // 30天滚动窗口
-    rec.lastSold = ts;
-
-    if(rec.rowIndex!==-1){
-      salesSnapshotSheet.getRange(rec.rowIndex,3).setValue(rec.total);
-      salesSnapshotSheet.getRange(rec.rowIndex,4).setValue(rec.last7);
-      salesSnapshotSheet.getRange(rec.rowIndex,5).setValue(rec.last30);
-      salesSnapshotSheet.getRange(rec.rowIndex,6).setValue(rec.lastSold);
-      salesSnapshotSheet.getRange(rec.rowIndex,7).setValue(new Date());
+    
+    // Update last sold date - ensure it's a proper Date object
+    rec.lastSold = new Date(ts);
+    
+    // Handle TodaySales - only update if the sale is from today
+    if (saleDateStr === todayStr) {
+      // Ensure todaySales is always a number
+      rec.todaySales = (parseInt(rec.todaySales) || 0) + qty;
+      addLog("Today's sale detected: Adding " + qty + " to todaySales. New todaySales: " + rec.todaySales + " (type: " + typeof rec.todaySales + ")");
     } else {
-      salesSnapshotSheet.appendRow([sku,sku,rec.total,rec.last7,rec.last30,rec.lastSold,new Date()]);
+      // For non-today sales, keep existing todaySales (don't add to it)
+      // Ensure it's a number
+      rec.todaySales = parseInt(rec.todaySales) || 0;
+      addLog("Non-today sale detected: Keeping existing todaySales: " + rec.todaySales + " (type: " + typeof rec.todaySales + ")");
+    }
+
+    // Update the sales map
+    salesMap.set(sku, rec);
+  });
+
+  // Get all logs for proper rolling window calculation
+  var allLogs = getSheetData(logSheet);
+  
+  // Calculate proper rolling windows for all affected SKUs
+  salesMap.forEach((rec, sku) => {
+    var rollingData = calculateRollingWindowSales(sku, allLogs, today);
+    rec.last7 = rollingData.last7Days;
+    rec.last30 = rollingData.last30Days;
+    addLog("Calculated rolling windows for " + sku + ": Last7Days=" + rollingData.last7Days + ", Last30Days=" + rollingData.last30Days);
+  });
+
+  // Now update the actual sheet with all changes
+  salesMap.forEach((rec, sku) => {
+    if (rec.rowIndex !== -1) {
+      // Update existing row
+      var updateValues = [];
+      var updateColumns = [];
+      
+      if (totalSoldIndex !== -1) {
+        updateValues.push(rec.total);
+        updateColumns.push(totalSoldIndex + 1);
+      }
+      if (last7DaysIndex !== -1) {
+        updateValues.push(rec.last7);
+        updateColumns.push(last7DaysIndex + 1);
+      }
+      if (last30DaysIndex !== -1) {
+        updateValues.push(rec.last30);
+        updateColumns.push(last30DaysIndex + 1);
+      }
+      if (lastSoldDateIndex !== -1) {
+        // Ensure the date is properly formatted for Google Sheets
+        var formattedDate = rec.lastSold instanceof Date ? rec.lastSold : new Date(rec.lastSold);
+        updateValues.push(formattedDate);
+        updateColumns.push(lastSoldDateIndex + 1);
+      }
+      if (todaySalesIndex !== -1) {
+        // Ensure todaySales is explicitly treated as a number
+        var todaySalesValue = parseInt(rec.todaySales) || 0;
+        updateValues.push(todaySalesValue);
+        updateColumns.push(todaySalesIndex + 1);
+        addLog("Setting TodaySales for " + sku + " to: " + todaySalesValue + " (type: " + typeof todaySalesValue + ")");
+      }
+      if (lastUpdatedIndex !== -1) {
+        updateValues.push(new Date());
+        updateColumns.push(lastUpdatedIndex + 1);
+      }
+      
+      // Update each column individually
+      updateValues.forEach((value, i) => {
+        var colIndex = updateColumns[i];
+        salesSnapshotSheet.getRange(rec.rowIndex, colIndex).setValue(value);
+      });
+      
+      addLog("Updated existing sales record for SKU " + sku + ": Total=" + rec.total + ", TodaySales=" + rec.todaySales + ", Last7Days=" + rec.last7 + ", Last30Days=" + rec.last30);
+    } else {
+      // Append new row
+      var newRow = [
+        sku, // SnapshotID
+        sku, // SKU
+        rec.total, // TotalSold
+        rec.last7, // Last7Days
+        rec.last30, // Last30Days
+        rec.lastSold instanceof Date ? rec.lastSold : new Date(rec.lastSold), // LastSoldDate - ensure proper Date object
+        new Date(), // LastUpdated
+        parseInt(rec.todaySales) || 0, // TodaySales - ensure it's a number
+        0, // CumulativeValue (will be calculated below)
+        "" // TopSellerRank (will be calculated below)
+      ];
+      salesSnapshotSheet.appendRow(newRow);
+      
+      // Get the row index of the newly appended row
+      var newRowIndex = salesSnapshotSheet.getLastRow();
+      rec.rowIndex = newRowIndex;
+      
+      addLog("Appended new sales record for SKU " + sku + " at row " + newRowIndex + ": " + JSON.stringify(newRow));
     }
   });
+  
+  // Now update calculated columns (CumulativeValue, TopSellerRank) for ALL rows
+  updateSalesCalculatedColumns(salesMap);
+  
+  addLog("updateSalesSnapshot completed successfully");
 }
 
-// ---------------------------
-// Get Products from Product Master
-// ---------------------------
-function getProducts() {
-  if (!productMasterSheet) return outputJSON({status:"error", message:"Product Master sheet not found"});
+/*************************************************
+ * UPDATE SALES CALCULATED COLUMNS
+ *************************************************/
+function updateSalesCalculatedColumns(salesMap) {
+  if (!salesSnapshotSheet || !productMasterSheet) {
+    addLog("ERROR: Required sheets not found for sales calculated columns update");
+    return;
+  }
+
+  addLog("Starting updateSalesCalculatedColumns for " + salesMap.size + " sales items");
+
+  // Get product master data for pricing
+  var productData = getSheetData(productMasterSheet);
+  var productMap = new Map();
+  productData.forEach(product => {
+    if (product.SKU) {
+      productMap.set(product.SKU, Number(product.Price) || 0);
+    }
+  });
+
+  // Get current sales snapshot data
+  var salesData = salesSnapshotSheet.getDataRange().getValues();
+  var headers = salesData.shift();
+  var skuIndex = headers.indexOf("SKU");
+  var totalSoldIndex = headers.indexOf("TotalSold");
+  var cumulativeValueIndex = headers.indexOf("CumulativeValue");
+  var topSellerRankIndex = headers.indexOf("TopSellerRank");
   
-  try {
-    var data = productMasterSheet.getDataRange().getValues();
-    var headers = data[0];
-    var products = data.slice(1);
+  if (skuIndex === -1 || totalSoldIndex === -1 || cumulativeValueIndex === -1) {
+    addLog("ERROR: Required calculated columns not found in Sales Snapshot");
+    return;
+  }
+
+  // Calculate cumulative values and prepare for ranking
+  var salesWithValues = [];
+  
+  salesMap.forEach((rec, sku) => {
+    var unitPrice = productMap.get(sku) || 0;
+    var cumulativeValue = rec.total * unitPrice;
     
-    // Find SKU column index
-    var skuIndex = headers.indexOf("SKU");
-    var nameIndex = headers.indexOf("Product Name");
-    var variationIndex = headers.indexOf("Variation Name");
+    salesWithValues.push({
+      sku: sku,
+      totalSold: rec.total,
+      cumulativeValue: cumulativeValue,
+      rowIndex: rec.rowIndex
+    });
     
-    if (skuIndex === -1) {
-      return outputJSON({status:"error", message:"SKU column not found in Product Master sheet"});
+    addLog("Calculated cumulative value for " + sku + ": " + rec.total + " × " + unitPrice + " = " + cumulativeValue);
+  });
+
+  // Sort by cumulative value for ranking
+  salesWithValues.sort((a, b) => b.cumulativeValue - a.cumulativeValue);
+
+  // Update calculated columns for ALL rows (both existing and new)
+  salesWithValues.forEach((item, index) => {
+    var rank = index + 1;
+    var topSellerRank = rank <= 10 ? rank.toString() : ""; // Just the number, not "Top 1"
+    
+    if (item.rowIndex !== -1) {
+      // Update cumulative value
+      salesSnapshotSheet.getRange(item.rowIndex, cumulativeValueIndex + 1).setValue(item.cumulativeValue);
+      
+      // Update top seller rank
+      if (topSellerRankIndex !== -1) {
+        salesSnapshotSheet.getRange(item.rowIndex, topSellerRankIndex + 1).setValue(topSellerRank);
+      }
+      
+      addLog("Updated calculated columns for " + item.sku + " at row " + item.rowIndex + ": CumulativeValue=" + item.cumulativeValue + ", TopSellerRank=" + topSellerRank);
+    }
+  });
+
+  addLog("Sales calculated columns update completed for " + salesWithValues.length + " items");
+}
+
+/*************************************************
+ * UPDATE INVENTORY SALES FIELDS (Shop locations only)
+ *************************************************/
+function updateInventorySalesFields(salesUpdates) {
+  if (!snapshotSheet) {
+    addLog("ERROR: Inventory Snapshot sheet not found");
+    return;
+  }
+  
+  addLog("Starting updateInventorySalesFields with " + salesUpdates.length + " entries");
+  
+  // Only process SALE entries
+  var saleEntries = salesUpdates.filter(update => update.sku); // Filter valid entries
+  if (saleEntries.length === 0) {
+    addLog("No valid sales entries found, skipping sales field updates");
+    return;
+  }
+  
+  // Load current inventory snapshot
+  var snapshotData = snapshotSheet.getDataRange().getValues();
+  var headers = snapshotData.shift();
+  
+  // Find column indices dynamically
+  var skuIndex = headers.indexOf("SKU");
+  var locationIndex = headers.indexOf("Location");
+  var daysSinceLastSaleIndex = headers.indexOf("DaysSinceLastSale");
+  var last7DaysSalesIndex = headers.indexOf("Last7DaysSales");
+  var lastUpdatedIndex = headers.indexOf("LastUpdated");
+  
+  if (skuIndex === -1 || locationIndex === -1) {
+    addLog("ERROR: Required columns not found in Inventory Snapshot");
+    return;
+  }
+  
+  // Group sales by SKU to calculate totals and last sale date
+  var salesBySKU = new Map();
+  var today = new Date();
+  var todayStr = today.toDateString();
+  
+  saleEntries.forEach(entry => {
+    var sku = entry.sku;
+    var qty = entry.qty;
+    var saleDate = entry.timestamp || today;
+    var saleDateStr = saleDate.toDateString();
+    
+    if (!salesBySKU.has(sku)) {
+      salesBySKU.set(sku, {
+        totalQty: 0,
+        lastSaleDate: saleDate,
+        todayQty: 0
+      });
     }
     
-    var productList = products.map(function(row) {
-      var sku = row[skuIndex] || "";
-      var name = nameIndex !== -1 ? (row[nameIndex] || "") : "";
-      var variation = variationIndex !== -1 ? (row[variationIndex] || "") : "";
+    var skuData = salesBySKU.get(sku);
+    skuData.totalQty += qty;
+    
+    // Update last sale date if this sale is more recent
+    if (saleDate > skuData.lastSaleDate) {
+      skuData.lastSaleDate = saleDate;
+    }
+    
+    // Add to today's quantity if sale is from today
+    if (saleDateStr === todayStr) {
+      skuData.todayQty += qty;
+    }
+  });
+  
+  addLog("Processed sales data for " + salesBySKU.size + " SKUs");
+  
+  // Get all logs for proper rolling window calculation
+  var allLogs = getSheetData(logSheet);
+  
+  // Update inventory snapshot for Shop locations only
+  salesBySKU.forEach((skuData, sku) => {
+    addLog("Processing sales updates for SKU: " + sku + ", Total Qty: " + skuData.totalQty + ", Last Sale: " + skuData.lastSaleDate);
+    
+    // Find Shop location row for this SKU
+    for (var i = 0; i < snapshotData.length; i++) {
+      var row = snapshotData[i];
+      var rowSku = row[skuIndex];
+      var rowLocation = row[locationIndex];
       
-      return {
-        sku: sku,
-        name: name,
-        variation: variation,
-        displayName: variation ? name + " - " + variation : name
-      };
-    }).filter(function(product) {
-      return product.sku && product.sku.trim() !== ""; // Only return products with valid SKUs
-    });
+      if (rowSku === sku && rowLocation === 'Shop') {
+        var rowIndex = i + 2; // +2 because we shifted headers and arrays are 0-indexed
+        
+        // Calculate days since last sale
+        var daysSinceLastSale = Math.floor((today - skuData.lastSaleDate) / (1000 * 60 * 60 * 24));
+        
+        // Update sales-related fields
+        if (daysSinceLastSaleIndex !== -1) {
+          snapshotSheet.getRange(rowIndex, daysSinceLastSaleIndex + 1).setValue(daysSinceLastSale);
+          addLog("Updated DaysSinceLastSale for SKU " + sku + " (Shop): " + daysSinceLastSale);
+        }
+        
+        if (last7DaysSalesIndex !== -1) {
+          // Calculate proper 7-day rolling window
+          var rollingData = calculateRollingWindowSales(sku, allLogs, today);
+          snapshotSheet.getRange(rowIndex, last7DaysSalesIndex + 1).setValue(rollingData.last7Days);
+          addLog("Updated Last7DaysSales for SKU " + sku + " (Shop): " + rollingData.last7Days + " (proper rolling window)");
+        }
+        
+        if (lastUpdatedIndex !== -1) {
+          snapshotSheet.getRange(rowIndex, lastUpdatedIndex + 1).setValue(today);
+        }
+        
+        addLog("Updated sales fields for SKU " + sku + " at Shop location");
+        break;
+      }
+    }
+  });
+  
+  addLog("updateInventorySalesFields completed successfully");
+}
+
+/*************************************************
+ * RESET TODAYSALES TO 0 (call this at start of each day)
+ *************************************************/
+function resetTodaySales() {
+  if (!salesSnapshotSheet) return sendJSON({status:"error", message:"Sales Snapshot sheet not found"});
+  
+  try {
+    var data = salesSnapshotSheet.getDataRange().getValues();
+    var headers = data[0];
+    var todaySalesIndex = headers.indexOf("TodaySales");
     
-    addLog("Retrieved " + productList.length + " products from Product Master sheet");
+    if (todaySalesIndex === -1) {
+      addLog("TodaySales column not found, skipping reset");
+      return sendJSON({status:"error", message:"TodaySales column not found"});
+    }
     
-    return outputJSON({
-      status: "success", 
-      data: productList,
-      count: productList.length
-    });
+    addLog("Resetting all TodaySales to 0");
+    
+    // Reset all TodaySales to 0
+    for (var i = 1; i < data.length; i++) { // Start from 1 to skip header
+      var row = data[i];
+      var sku = row[0]; // Assuming SKU is first column
+      if (sku && sku.trim() !== "") {
+        salesSnapshotSheet.getRange(i + 1, todaySalesIndex + 1).setValue(0);
+      }
+    }
+    
+    addLog("TodaySales reset completed - all values set to 0");
+    return sendJSON({status:"success", message:"TodaySales reset to 0 for all SKUs"});
     
   } catch (error) {
-    addLog("Error getting products: " + error.toString());
-    return outputJSON({status:"error", message:"Failed to retrieve products: " + error.toString()});
+    addLog("Error resetting TodaySales: " + error.toString());
+    return sendJSON({status:"error", message:"Failed to reset TodaySales: " + error.toString()});
   }
 }
 
-// ---------------------------
-// Helper
-// ---------------------------
-function outputJSON(obj){
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+/*************************************************
+ * SETUP DAILY TRIGGER FOR RESETTING TODAYSALES
+ *************************************************/
+function setupDailyReset() {
+  try {
+    // Delete existing triggers
+    var triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(function(trigger) {
+      if (trigger.getHandlerFunction() === 'resetTodaySales') {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    });
+    
+    // Create new daily trigger at 00:00 (midnight)
+    ScriptApp.newTrigger('resetTodaySales')
+      .timeBased()
+      .everyDays(1)
+      .atHour(0)
+      .create();
+    
+    addLog("Daily trigger created for resetTodaySales at 00:00");
+    return sendJSON({status:"success", message:"Daily trigger created for resetting TodaySales at midnight"});
+    
+  } catch (error) {
+    addLog("Error creating daily trigger: " + error.toString());
+    return sendJSON({status:"error", message:"Failed to create daily trigger: " + error.toString()});
+  }
+}
+
+/*************************************************
+ * ADD TRANSACTION (NEW POST-BASED APPROACH)
+ *************************************************/
+function addTransaction(data) {
+  // Expected data keys: SKU, Quantity, Mode, SourceLocation, DestinationLocation, User, Notes
+  try {
+    var newId = Utilities.getUuid();
+    var timestamp = new Date();
+
+    logSheet.appendRow([
+      newId,
+      timestamp,
+      data.SKU,
+      Number(data.Quantity),
+      data.Mode,
+      data.SourceLocation,
+      data.DestinationLocation,
+      data.User,
+      data.Notes || ""
+    ]);
+
+    addLog("Added transaction: " + JSON.stringify(data));
+
+    // Trigger recalculation of snapshots
+    updateSnapshots();
+
+    return { status:"success", TransactionID: newId };
+  } catch (error) {
+    addLog("Error adding transaction: " + error.toString());
+    return { status:"error", message: error.toString() };
+  }
+}
+
+/*************************************************
+ * UPDATE SNAPSHOTS (BUSINESS RULES)
+ *************************************************/
+function updateSnapshots() {
+  addLog("Starting updateSnapshots...");
+  
+  try {
+    var logs = getSheetData(logSheet);
+    var productMaster = getSheetData(productMasterSheet);
+    
+    addLog("Processing " + logs.length + " log entries and " + productMaster.length + " products");
+    
+    // Log the sales entries for debugging
+    var salesLogs = logs.filter(log => log["Mode"] === "SALE");
+    addLog("Found " + salesLogs.length + " sales entries: " + JSON.stringify(salesLogs.map(log => ({sku: log["SKU"], qty: log["Quantity"], date: log["Timestamp"]}))));
+
+    // === INVENTORY SNAPSHOT ===
+    var snapshot = {};
+    logs.forEach(function (log) {
+      var qty = Number(log["Quantity"]) || 0;
+
+      if (log["Mode"] == "RECEIVING") {
+        // For receiving, create/update destination location
+        var destKey = log["SKU"] + "|" + log["DestinationLocation"];
+        if (!snapshot[destKey]) {
+          snapshot[destKey] = {
+            SnapshotID: destKey,
+            SKU: log["SKU"],
+            Location: log["DestinationLocation"],
+            CurrentStock: 0,
+            LastUpdated: log["Timestamp"],
+            InventoryValue: 0,
+            DaysSinceLastSale: "",
+            StockStatus: "Green",
+            Last7DaysSales: 0
+          };
+        }
+        snapshot[destKey].CurrentStock += qty;
+        snapshot[destKey].LastUpdated = log["Timestamp"];
+        
+      } else if (log["Mode"] == "SALE" && log["SourceLocation"] == "Shop") {
+        // For sales, create/update source location (Shop)
+        var sourceKey = log["SKU"] + "|" + log["SourceLocation"];
+        if (!snapshot[sourceKey]) {
+          snapshot[sourceKey] = {
+            SnapshotID: sourceKey,
+            SKU: log["SKU"],
+            Location: log["SourceLocation"],
+            CurrentStock: 0,
+            LastUpdated: log["Timestamp"],
+            InventoryValue: 0,
+            DaysSinceLastSale: "",
+            StockStatus: "Green",
+            Last7DaysSales: 0
+          };
+        }
+        snapshot[sourceKey].CurrentStock -= qty;
+        snapshot[sourceKey].LastUpdated = log["Timestamp"];
+        
+      } else if (log["Mode"] == "TRANSFER") {
+        // For transfers, create/update BOTH source and destination locations
+        var sourceKey = log["SKU"] + "|" + log["SourceLocation"];
+        var destKey = log["SKU"] + "|" + log["DestinationLocation"];
+        
+        // Handle source location (decrease stock)
+        if (!snapshot[sourceKey]) {
+          snapshot[sourceKey] = {
+            SnapshotID: sourceKey,
+            SKU: log["SKU"],
+            Location: log["SourceLocation"],
+            CurrentStock: 0,
+            LastUpdated: log["Timestamp"],
+            InventoryValue: 0,
+            DaysSinceLastSale: "",
+            StockStatus: "Green",
+            Last7DaysSales: 0
+          };
+        }
+        snapshot[sourceKey].CurrentStock -= qty;
+        snapshot[sourceKey].LastUpdated = log["Timestamp"];
+        
+        // Handle destination location (increase stock)
+        if (!snapshot[destKey]) {
+          snapshot[destKey] = {
+            SnapshotID: destKey,
+            SKU: log["SKU"],
+            Location: log["DestinationLocation"],
+            CurrentStock: 0,
+            LastUpdated: log["Timestamp"],
+            InventoryValue: 0,
+            DaysSinceLastSale: "",
+            StockStatus: "Green",
+            Last7DaysSales: 0
+          };
+        }
+        snapshot[destKey].CurrentStock += qty;
+        snapshot[destKey].LastUpdated = log["Timestamp"];
+        
+      } else if (log["Mode"] == "ADJUSTMENT") {
+        // For adjustments, create/update the specified location
+        var locationKey = log["SKU"] + "|" + log["SourceLocation"];
+        if (!snapshot[locationKey]) {
+          snapshot[locationKey] = {
+            SnapshotID: locationKey,
+            SKU: log["SKU"],
+            Location: log["SourceLocation"],
+            CurrentStock: 0,
+            LastUpdated: log["Timestamp"],
+            InventoryValue: 0,
+            DaysSinceLastSale: "",
+            StockStatus: "Green",
+            Last7DaysSales: 0
+          };
+        }
+        snapshot[locationKey].CurrentStock = qty; // Set to exact quantity
+        snapshot[locationKey].LastUpdated = log["Timestamp"];
+      }
+    });
+
+    // Add product price info and calculate inventory value
+    productMaster.forEach(function (p) {
+      for (var key in snapshot) {
+        if (snapshot[key].SKU == p["SKU"]) {
+          var unitPrice = Number(p["Price"]) || 0;
+          snapshot[key].InventoryValue = snapshot[key].CurrentStock * unitPrice;
+          
+          // Calculate stock status based on stock level
+          var stockLevel = snapshot[key].CurrentStock;
+          if (stockLevel === 0) {
+            snapshot[key].StockStatus = "Red";
+          } else if (stockLevel < 5) {
+            snapshot[key].StockStatus = "Red";
+          } else if (stockLevel < 20) {
+            snapshot[key].StockStatus = "Yellow";
+          } else {
+            snapshot[key].StockStatus = "Green";
+          }
+        }
+      }
+    });
+    
+    // Calculate sales-related fields for inventory snapshot
+    var today = new Date();
+    
+    // Process sales logs to calculate DaysSinceLastSale and retrieve Last7DaysSales from sales snapshot
+    logs.forEach(function (log) {
+      if (log["Mode"] == "SALE" && log["SourceLocation"] == "Shop") {
+        var sku = log["SKU"];
+        var saleDate = log["Timestamp"] || today;
+        
+        // Update inventory snapshot for Shop locations only
+        for (var key in snapshot) {
+          if (snapshot[key].SKU === sku && snapshot[key].Location === "Shop") {
+            // Calculate days since last sale
+            var daysSinceLastSale = Math.floor((today - saleDate) / (1000 * 60 * 60 * 24));
+            snapshot[key].DaysSinceLastSale = daysSinceLastSale;
+            
+            // Retrieve Last7DaysSales from the sales snapshot (which has the real rolling window calculation)
+            if (sales[sku]) {
+              snapshot[key].Last7DaysSales = sales[sku].Last7Days;
+            }
+            
+            addLog("Updated sales fields for SKU " + sku + " at Shop location: DaysSinceLastSale=" + daysSinceLastSale + ", Last7DaysSales=" + snapshot[key].Last7DaysSales);
+            break;
+          }
+        }
+      }
+    });
+
+    // Write back to inventory snapshot
+    snapshotSheet.clearContents();
+    snapshotSheet.appendRow(["SnapshotID","SKU","Location","CurrentStock","LastUpdated","InventoryValue","DaysSinceLastSale","StockStatus","Last7DaysSales"]);
+    
+    addLog("Writing inventory snapshot with " + Object.keys(snapshot).length + " entries");
+    for (var key in snapshot) {
+      var s = snapshot[key];
+      addLog("Inventory entry: " + s.SKU + " at " + s.Location + " - Stock: " + s.CurrentStock + ", Value: " + s.InventoryValue + ", DaysSinceLastSale: " + s.DaysSinceLastSale + ", Last7DaysSales: " + s.Last7DaysSales);
+      snapshotSheet.appendRow([
+        s.SnapshotID, s.SKU, s.Location, s.CurrentStock, s.LastUpdated, s.InventoryValue, s.DaysSinceLastSale, s.StockStatus, s.Last7DaysSales
+      ]);
+    }
+
+    // === SALES SNAPSHOT ===
+    var sales = {};
+    var today = new Date();
+    var todayStr = today.toDateString();
+    
+    logs.forEach(function (log) {
+      if (log["Mode"] == "SALE" && log["SourceLocation"] == "Shop") {
+        var sku = log["SKU"];
+        var qty = Number(log["Quantity"]);
+        var saleDate = log["Timestamp"] || today;
+        var saleDateStr = saleDate.toDateString();
+
+        if (!sales[sku]) {
+          sales[sku] = {
+            SnapshotID: sku,
+            SKU: sku,
+            TotalSold: 0,
+            Last7Days: 0,
+            Last30Days: 0,
+            LastSoldDate: "",
+            LastUpdated: new Date(),
+            TodaySales: 0,
+            CumulativeValue: 0,
+            TopSellerRank: ""
+          };
+        }
+
+        sales[sku].TotalSold += qty;
+        sales[sku].LastSoldDate = saleDate;
+        
+        // Calculate today's sales
+        if (saleDateStr === todayStr) {
+          sales[sku].TodaySales += qty;
+        }
+      }
+    });
+    
+    // Calculate actual rolling windows for Last7Days and Last30Days
+    for (var sku in sales) {
+      var sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+      var thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+      
+      var last7DaysTotal = 0;
+      var last30DaysTotal = 0;
+      
+      // Calculate sales in the last 7 and 30 days
+      logs.forEach(function (log) {
+        if (log["Mode"] == "SALE" && log["SourceLocation"] == "Shop" && log["SKU"] === sku) {
+          var saleDate = log["Timestamp"] || today;
+          var qty = Number(log["Quantity"]) || 0;
+          
+          // Last 7 days
+          if (saleDate >= sevenDaysAgo) {
+            last7DaysTotal += qty;
+          }
+          
+          // Last 30 days
+          if (saleDate >= thirtyDaysAgo) {
+            last30DaysTotal += qty;
+          }
+        }
+      });
+      
+      sales[sku].Last7Days = last7DaysTotal;
+      sales[sku].Last30Days = last30DaysTotal;
+      
+      addLog("Calculated rolling windows for " + sku + ": Last7Days=" + last7DaysTotal + ", Last30Days=" + last30DaysTotal);
+    }
+
+    // Calculate cumulative value
+    productMaster.forEach(function (p) {
+      if (sales[p.SKU]) {
+        var unitPrice = Number(p["Price"]) || 0;
+        sales[p.SKU].CumulativeValue = sales[p.SKU].TotalSold * unitPrice;
+      }
+    });
+
+    // Write back to sales snapshot
+    salesSnapshotSheet.clearContents();
+    salesSnapshotSheet.appendRow(["SnapshotID","SKU","TotalSold","Last7Days","Last30Days","LastSoldDate","LastUpdated","TodaySales","CumulativeValue","TopSellerRank"]);
+    
+    addLog("Writing sales snapshot with " + Object.keys(sales).length + " entries");
+    for (var sku in sales) {
+      var s = sales[sku];
+      addLog("Sales entry: " + s.SKU + " - TotalSold: " + s.TotalSold + ", TodaySales: " + s.TodaySales + ", Last7Days: " + s.Last7Days + ", Last30Days: " + s.Last30Days);
+      salesSnapshotSheet.appendRow([
+        s.SnapshotID, s.SKU, s.TotalSold, s.Last7Days, s.Last30Days, s.LastSoldDate, s.LastUpdated, s.TodaySales, s.CumulativeValue, s.TopSellerRank
+      ]);
+    }
+
+    addLog("updateSnapshots completed successfully");
+    return { status:"success", message:"Snapshots updated successfully" };
+    
+  } catch (error) {
+    addLog("Error in updateSnapshots: " + error.toString());
+    return { status:"error", message:"Failed to update snapshots: " + error.toString() };
+  }
+}
+
+/*************************************************
+ * FIX CORRUPTED TODAYSALES VALUES
+ *************************************************/
+function fixCorruptedTodaySales() {
+  addLog("Starting fixCorruptedTodaySales...");
+  
+  try {
+    if (!salesSnapshotSheet) {
+      addLog("ERROR: Sales Snapshot sheet not found");
+      return {status:"error", message:"Sales Snapshot sheet not found"};
+    }
+    
+    var data = salesSnapshotSheet.getDataRange().getValues();
+    var headers = data[0];
+    
+    // Find column indices
+    var skuIndex = headers.indexOf("SKU");
+    var todaySalesIndex = headers.indexOf("TodaySales");
+    var lastUpdatedIndex = headers.indexOf("LastUpdated");
+    
+    if (skuIndex === -1 || todaySalesIndex === -1) {
+      addLog("ERROR: Required columns not found");
+      return {status:"error", message:"Required columns not found"};
+    }
+    
+    var today = new Date();
+    var todayStr = today.toDateString();
+    var fixedCount = 0;
+    
+    // Process each data row (skip header)
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var sku = row[skuIndex];
+      var todaySalesValue = row[todaySalesIndex];
+      
+      if (sku && sku.trim() !== "") {
+        // Check if TodaySales is corrupted (not a number)
+        if (isNaN(parseInt(todaySalesValue)) || todaySalesValue instanceof Date) {
+          addLog("Fixing corrupted TodaySales for SKU " + sku + ": was " + todaySalesValue + ", setting to 0");
+          
+          // Reset to 0
+          salesSnapshotSheet.getRange(i + 1, todaySalesIndex + 1).setValue(0);
+          
+          // Update LastUpdated
+          if (lastUpdatedIndex !== -1) {
+            salesSnapshotSheet.getRange(i + 1, lastUpdatedIndex + 1).setValue(today);
+          }
+          
+          fixedCount++;
+        }
+      }
+    }
+    
+    addLog("Fixed " + fixedCount + " corrupted TodaySales values");
+    
+    // Now recalculate TodaySales based on actual today's sales
+    var allLogs = getSheetData(logSheet);
+    var todaySales = {};
+    
+    // Calculate today's sales from logs
+    allLogs.forEach(log => {
+      if (log["Mode"] === "SALE" && log["SourceLocation"] === "Shop") {
+        var saleDate = log["Timestamp"] || new Date();
+        var saleDateStr = saleDate.toDateString();
+        
+        if (saleDateStr === todayStr) {
+          var sku = log["SKU"];
+          var qty = parseInt(log["Quantity"]) || 0;
+          
+          if (!todaySales[sku]) {
+            todaySales[sku] = 0;
+          }
+          todaySales[sku] += qty;
+        }
+      }
+    });
+    
+    // Update TodaySales for SKUs that had sales today
+    var updatedCount = 0;
+    for (var sku in todaySales) {
+      // Find the row for this SKU
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        if (row[skuIndex] === sku) {
+          salesSnapshotSheet.getRange(i + 1, todaySalesIndex + 1).setValue(todaySales[sku]);
+          addLog("Updated TodaySales for " + sku + " to " + todaySales[sku]);
+          updatedCount++;
+          break;
+        }
+      }
+    }
+    
+    addLog("Updated " + updatedCount + " TodaySales values based on actual today's sales");
+    
+    return {
+      status: "success",
+      message: "Fixed corrupted TodaySales values",
+      fixedCount: fixedCount,
+      updatedCount: updatedCount,
+      logs: getLogs()
+    };
+    
+  } catch (error) {
+    addLog("Error fixing corrupted TodaySales: " + error.toString());
+    return {
+      status: "error",
+      message: "Failed to fix corrupted TodaySales: " + error.toString(),
+      logs: getLogs()
+    };
+  }
+}
+
+/*************************************************
+ * TEST SALES SNAPSHOT STRUCTURE
+ *************************************************/
+function testSalesSnapshotStructure() {
+  addLog("Testing sales snapshot structure...");
+  
+  try {
+    if (!salesSnapshotSheet) {
+      addLog("ERROR: Sales Snapshot sheet not found");
+      return {status:"error", message:"Sales Snapshot sheet not found"};
+    }
+    
+    var data = salesSnapshotSheet.getDataRange().getValues();
+    var headers = data[0];
+    
+    addLog("Sales Snapshot headers: " + JSON.stringify(headers));
+    
+    // Check if we have data rows
+    if (data.length <= 1) {
+      addLog("No data rows found in Sales Snapshot");
+      return {status:"success", message:"No data rows found", headers: headers};
+    }
+    
+    // Check first data row
+    var firstRow = data[1];
+    var rowData = {};
+    headers.forEach((header, index) => {
+      rowData[header] = firstRow[index];
+    });
+    
+    addLog("First row data: " + JSON.stringify(rowData));
+    
+    // Check data types
+    var dataTypes = {};
+    headers.forEach((header, index) => {
+      var value = firstRow[index];
+      dataTypes[header] = {
+        value: value,
+        type: typeof value,
+        isDate: value instanceof Date,
+        isNumber: !isNaN(Number(value)) && value !== null && value !== ""
+      };
+    });
+    
+    addLog("Data types analysis: " + JSON.stringify(dataTypes, null, 2));
+    
+    return {
+      status: "success",
+      message: "Sales Snapshot structure analyzed",
+      headers: headers,
+      firstRow: rowData,
+      dataTypes: dataTypes,
+      totalRows: data.length - 1,
+      logs: getLogs()
+    };
+    
+  } catch (error) {
+    addLog("Error testing sales snapshot structure: " + error.toString());
+    return {
+      status: "error",
+      message: "Failed to test sales snapshot structure: " + error.toString(),
+      logs: getLogs()
+    };
+  }
+}
+
+/*************************************************
+ * TEST SALES OPERATION
+ *************************************************/
+function testSalesOperation() {
+  addLog("Testing sales operation...");
+  
+  try {
+    // Simulate a sales operation
+    var testData = {
+      action: "addInventoryLog",
+      data: JSON.stringify([{
+        sku: "TEST001",
+        quantity: 5,
+        mode: "SALE",
+        source: "Shop",
+        destination: "",
+        user: "TestUser",
+        notes: "Test sales operation"
+      }])
+    };
+    
+    addLog("Simulating sales operation with test data: " + JSON.stringify(testData));
+    
+    // Create a mock event object
+    var mockEvent = {
+      parameter: testData
+    };
+    
+    // Call the function
+    var result = addInventoryLog(mockEvent);
+    
+    addLog("Test sales operation completed. Result: " + JSON.stringify(result));
+    
+    return {
+      status: "success",
+      message: "Test sales operation completed",
+      result: result,
+      logs: getLogs()
+    };
+    
+  } catch (error) {
+    addLog("Error in test sales operation: " + error.toString());
+    return {
+      status: "error",
+      message: "Test sales operation failed: " + error.toString(),
+      logs: getLogs()
+    };
+  }
+}
+
+/*************************************************
+ * MANUAL TRIGGERS FOR TESTING
+ *************************************************/
+function manualUpdateSnapshots() {
+  addLog("Manual updateSnapshots triggered");
+  return updateSnapshots();
 }

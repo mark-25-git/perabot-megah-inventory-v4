@@ -59,7 +59,18 @@
 * **Stock Movement (Last 30 Days)**
 
   * Summary (counts by Mode: In, Out, Transfer, Adjustment) → from *Inventory Log*
-  * Expandable detail table: TransactionID | Timestamp | SKU | Quantity | Mode | Source | Destination | User | Notes
+  * ~~Expandable detail table: TransactionID | Timestamp | SKU | Quantity | Mode | Source | Destination | User | Notes~~ *(Removed - Performance optimization)*
+
+---
+
+## **Section 4: Dead Stock (No Sales in 14+ Days)** ✅
+
+**Purpose:** Identify stock tying up cash without selling.
+
+* **Table:** SKU | Product Name | Current Stock | Days Since Last Sale | Stock Value (RM)
+  * Derived from *Inventory Snapshot* + *Sales Snapshot.LastSoldDate*
+  * Risk-based row styling: Red (30+ days), Yellow (21-29 days), Green (14-20 days)
+* ~~**Bar Chart:** Current Stock Value vs Days Since Last Sale (Top 20 items)~~ *(Removed for simplicity)*
 
 ---
 
