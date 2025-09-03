@@ -94,10 +94,10 @@
           </div>
         </div>
         
-        <!-- Sales Trend Chart -->
+        <!-- Top 10 SKU Performance Chart -->
         <div class="chart-section">
           <div class="chart-header">
-            <h3 class="chart-title">Sales Trend</h3>
+            <h3 class="chart-title">Top 10 SKU Performance</h3>
             <div class="chart-controls">
               <button class="btn btn-pill active" id="trend7Days" onclick="switchTrendPeriod(7)">
                 7 Days
@@ -107,8 +107,8 @@
               </button>
             </div>
           </div>
-          <div class="chart-container">
-            <canvas id="salesTrendChart"></canvas>
+          <div class="chart-container" id="topSkuPerformanceChartContainer">
+            <canvas id="topSkuPerformanceChart"></canvas>
           </div>
         </div>
       </section>
@@ -689,7 +689,7 @@
             warehouseStock += stock;
           }
           
-          if (stock === 0) {
+          if (stock <= 0) {
             outOfStockItems++;
           } else if (stock < 20) {
             lowStockItems++;
@@ -710,7 +710,7 @@
     // ====== Overview Section Functions ======
     
     // Global chart instances
-    let salesTrendChart = null;
+    let topSkuPerformanceChart = null;
     let topSellingChart = null;
     let currentTrendPeriod = 7; // Default to 7 days
     let currentCumulativePeriod = 7; // Default to 7 days
@@ -764,7 +764,7 @@
       }
       
       // Update chart data
-      updateSalesTrendChart();
+      updateTopSkuPerformanceChart();
     }
     
     // Update individual KPI card with visual state
@@ -960,7 +960,7 @@
           }
         });
         
-        // Convert to array and sort by sales value (descending)
+        // Convert to array and sort by sales value (descending) - highest sales first
         const sortedSKUs = Object.values(skuData)
           .filter(item => item.salesValue > 0)
           .sort((a, b) => b.salesValue - a.salesValue);
@@ -1056,12 +1056,14 @@
           });
         });
         
-        // Sort by stock status priority (Out of Stock first, then Low Stock, then Healthy)
-        const statusPriority = { 'Out of Stock': 1, 'Low Stock': 2, 'Healthy': 3 };
+        // Sort by stock level (lowest first) - most critical items at top
         tableData.sort((a, b) => {
-          const priorityA = statusPriority[a.stockStatus] || 4;
-          const priorityB = statusPriority[b.stockStatus] || 4;
-          return priorityA - priorityB;
+          // First sort by stock level (ascending - lowest stock first)
+          if (a.currentStock !== b.currentStock) {
+            return a.currentStock - b.currentStock;
+          }
+          // If same stock level, sort by SKU alphabetically
+          return a.sku.localeCompare(b.sku);
         });
         
         console.log('Inventory alerts data prepared:', tableData);
@@ -1172,12 +1174,14 @@
           });
         });
         
-        // Sort by stock status priority (Out of Stock first, then Low Stock, then Healthy)
-        const statusPriority = { 'Red': 1, 'Yellow': 2, 'Green': 3 };
+        // Sort by stock level (lowest first) - most critical items at top
         tableData.sort((a, b) => {
-          const priorityA = statusPriority[a.stockStatus] || 4;
-          const priorityB = statusPriority[b.stockStatus] || 4;
-          return priorityA - priorityB;
+          // First sort by stock level (ascending - lowest stock first)
+          if (a.currentStock !== b.currentStock) {
+            return a.currentStock - b.currentStock;
+          }
+          // If same stock level, sort by SKU alphabetically
+          return a.sku.localeCompare(b.sku);
         });
         
         console.log('Warehouse inventory data prepared:', tableData);
@@ -1316,8 +1320,15 @@
         }
       });
       
-      // Sort by stock value (highest first) to prioritize high-value dead stock
-      deadStock.sort((a, b) => b.stockValue - a.stockValue);
+      // Sort by days since last sale (highest first) - most problematic dead stock at top
+      deadStock.sort((a, b) => {
+        // First sort by days since last sale (descending - most days first)
+        if (a.daysSinceLastSale !== b.daysSinceLastSale) {
+          return b.daysSinceLastSale - a.daysSinceLastSale;
+        }
+        // If same days, sort by stock value (descending - highest value first)
+        return b.stockValue - a.stockValue;
+      });
       
       console.log('Dead stock data prepared:', deadStock.length, 'items');
       return deadStock;
@@ -1369,45 +1380,57 @@
     
 
     
-    // Update sales trend chart
-    function updateSalesTrendChart() {
+    // Update Top 10 SKU Performance chart
+    function updateTopSkuPerformanceChart() {
       if (!dashboardData.salesSnapshot || dashboardData.salesSnapshot.length === 0) {
         console.log('No sales data available - chart will show empty data');
         // Initialize empty chart instead of returning
       }
       
-      const chartData = prepareChartData(currentTrendPeriod);
+      const chartData = prepareTopSkuPerformanceData(currentTrendPeriod);
       
-      if (salesTrendChart) {
-        salesTrendChart.destroy();
+      if (topSkuPerformanceChart) {
+        topSkuPerformanceChart.destroy();
       }
       
-      const ctx = document.getElementById('salesTrendChart').getContext('2d');
-      salesTrendChart = new Chart(ctx, {
-        type: 'line',
+      const ctx = document.getElementById('topSkuPerformanceChart').getContext('2d');
+      const chartContainer = document.getElementById('topSkuPerformanceChartContainer');
+      
+      // Check if mobile screen
+      const isMobile = window.innerWidth <= 768;
+      
+      // Adjust chart container height on mobile for better touch interaction
+      if (isMobile) {
+        chartContainer.style.height = '500px'; // Increased height for mobile
+        chartContainer.style.minHeight = '500px';
+      } else {
+        chartContainer.style.height = ''; // Reset to default on desktop
+        chartContainer.style.minHeight = '';
+      }
+      
+      topSkuPerformanceChart = new Chart(ctx, {
+        type: 'bar',
         data: {
           labels: chartData.labels,
-          datasets: [
+                      datasets: [
             {
-              label: 'Sales (RM)',
-              data: chartData.salesValues,
-              borderColor: 'rgb(75, 192, 192)',
-              backgroundColor: 'rgba(75, 192, 192, 0.1)',
-              tension: 0.1,
-              yAxisID: 'y'
-            },
-            {
-              label: 'Units Sold',
-              data: chartData.unitsSold,
-              borderColor: 'rgb(255, 99, 132)',
-              backgroundColor: 'rgba(255, 99, 132, 0.1)',
-              tension: 0.1,
-              yAxisID: 'y1'
+              label: `Last ${currentTrendPeriod} Days`,
+              data: chartData.salesData,
+              backgroundColor: 'rgba(59, 130, 246, 0.8)',
+              borderColor: 'rgb(59, 130, 246)',
+              borderWidth: 1,
+              // Increase bar thickness on mobile
+              ...(isMobile && {
+                barThickness: 'flex',
+                maxBarThickness: 50
+              })
             }
           ]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: isMobile ? 'y' : 'x', // Horizontal bars on mobile, vertical on desktop
           interaction: {
             mode: 'index',
             intersect: false,
@@ -1417,93 +1440,74 @@
               display: true,
               title: {
                 display: true,
-                text: 'Date'
-              }
+                text: isMobile ? 'Units Sold' : 'SKU'
+              },
+              beginAtZero: isMobile ? true : false
             },
             y: {
-              type: 'linear',
               display: true,
-              position: 'left',
               title: {
                 display: true,
-                text: 'Sales (RM)'
-              }
-            },
-            y1: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              title: {
-                display: true,
-                text: 'Units Sold'
+                text: isMobile ? 'SKU' : 'Units Sold'
               },
-              grid: {
-                drawOnChartArea: false,
-              },
+              beginAtZero: !isMobile ? true : false,
+              // Increase bar thickness on mobile for better touch interaction
+              ...(isMobile && {
+                categoryPercentage: 0.8,
+                barPercentage: 0.9
+              })
             }
           },
           plugins: {
             title: {
               display: true,
-              text: `Sales Trend - Last ${currentTrendPeriod} Days`
+              text: `Top 10 SKU Performance - Last ${currentTrendPeriod} Days`
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const sku = context.label;
+                  const value = isMobile ? context.parsed.x : context.parsed.y;
+                  return `${sku}: ${value} units`;
+                }
+              }
             }
           }
         }
       });
     }
     
-    // Prepare chart data based on period
-    function prepareChartData(period) {
+    // Prepare Top 10 SKU Performance data based on period
+    function prepareTopSkuPerformanceData(period) {
       const labels = [];
-      const salesValues = [];
-      const unitsSold = [];
+      const salesData = [];
       
-      // Generate date labels for the period
-      for (let i = period - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-      }
-      
-      // Use real data from sales snapshot if available
-      if (dashboardData.salesSnapshot && dashboardData.salesSnapshot.length > 0 && dashboardData.products) {
-        // Calculate total sales value and units for the period
-        let totalSalesValue = 0;
-        let totalUnits = 0;
+      if (dashboardData.salesSnapshot && dashboardData.salesSnapshot.length > 0) {
+        // Get the appropriate sales field based on period
+        const salesField = period === 7 ? 'Last7Days' : 'Last30Days';
         
-        dashboardData.salesSnapshot.forEach(sale => {
-          const quantity = sale.TodaySales || 0;
-          const sku = sale.SKU;
-          
-          // Calculate sales value using helper function
-          const saleValue = calculateSalesValue(quantity, sku, dashboardData.products);
-          totalSalesValue += saleValue;
-          totalUnits += quantity;
+        // Filter and sort SKUs by sales performance
+        const skuPerformance = dashboardData.salesSnapshot
+          .filter(sale => sale[salesField] && sale[salesField] > 0) // Only SKUs with sales
+          .sort((a, b) => (b[salesField] || 0) - (a[salesField] || 0)) // Sort by sales descending
+          .slice(0, 10); // Take top 10
+        
+        // Prepare chart data
+        skuPerformance.forEach(sale => {
+          labels.push(sale.SKU);
+          salesData.push(sale[salesField] || 0);
         });
         
-        for (let i = 0; i < period; i++) {
-          // Distribute data evenly across the period (this is a placeholder)
-          // Real implementation should use actual daily sales data
-          salesValues.push(totalSalesValue / period);
-          unitsSold.push(Math.floor(totalUnits / period));
-        }
-        
-        console.log('Chart data prepared with calculated sales values:', { 
-          totalSalesValue: totalSalesValue.toFixed(2), 
-          totalUnits, 
-          salesValues: salesValues.map(v => v.toFixed(2)), 
-          unitsSold 
+        console.log(`Top 10 SKU Performance data prepared for ${period} days:`, {
+          period,
+          salesField,
+          topPerformers: skuPerformance.map(s => ({ sku: s.SKU, sales: s[salesField] }))
         });
       } else {
-        // No sales data - show empty chart
-        for (let i = 0; i < period; i++) {
-          salesValues.push(0);
-          unitsSold.push(0);
-        }
-        console.log('Chart data prepared with empty data (no sales yet)');
+        console.log('No sales data available - chart will show empty data');
       }
       
-      return { labels, salesValues, unitsSold };
+      return { labels, salesData };
     }
     
     // Switch trend period
@@ -1515,7 +1519,7 @@
       document.getElementById('trend30Days').classList.toggle('active', period === 30);
       
       // Update chart
-      updateSalesTrendChart();
+      updateTopSkuPerformanceChart();
     }
     
     // ====== Global Refresh Function ======
@@ -1731,9 +1735,23 @@
       }
     }
 
+    // Handle window resize for responsive charts
+    function handleWindowResize() {
+      // Debounce resize events
+      clearTimeout(window.resizeTimeout);
+      window.resizeTimeout = setTimeout(() => {
+        if (topSkuPerformanceChart) {
+          updateTopSkuPerformanceChart();
+        }
+      }, 250);
+    }
+
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
       initializeTheme(); // Initialize theme first
+      
+      // Add resize listener for responsive charts
+      window.addEventListener('resize', handleWindowResize);
       
       // Test API connection on page load
       testAPIConnection().then(results => {

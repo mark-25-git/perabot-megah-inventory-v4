@@ -10,7 +10,7 @@ Purpose: Provides a real-time snapshot of current stock levels with calculated v
 
 Columns: SnapshotID, SKU, Location, CurrentStock, LastUpdated, InventoryValue, DaysSinceLastSale, StockStatus, Last7DaysSales
 Note: 
-- SnapshotID format is "SKU-LOCATION" (e.g., "ABC123-Shop", "ABC123-Warehouse")
+- SnapshotID format is "SKU|LOCATION" (e.g., "ABC123|Shop", "ABC123|Warehouse")
 - InventoryValue = CurrentStock × Price (from Product Master)
 - DaysSinceLastSale = Days since last sale (0 for today, 999 for no sales)
 - StockStatus = Red (0), Yellow (<20), Green (≥20)
