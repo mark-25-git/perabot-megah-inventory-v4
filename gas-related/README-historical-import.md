@@ -66,3 +66,4 @@ Use `dryRunHistoricalImportFromDriveCsv()` or `dryRunHistoricalImportFromPaste(c
 - If you have known unit prices during import, you can extend `computeSnapshots` to multiply `TotalSold`/`CurrentStock` appropriately, but we recommend letting the main backend compute values from `Product Master` after paste for consistency.
 
 
+

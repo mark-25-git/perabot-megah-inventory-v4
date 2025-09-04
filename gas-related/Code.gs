@@ -80,6 +80,35 @@ function sendJSON(obj) {
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
+function formatDateForSheet(date) {
+  if (!date) return new Date();
+  
+  // If it's already a Date object, use it; otherwise create one
+  var dateObj = date instanceof Date ? date : new Date(date);
+  var today = new Date();
+  
+  // If the date is today, use current time; otherwise use 08:00:00
+  var hours, minutes, seconds;
+  if (dateObj.toDateString() === today.toDateString()) {
+    // Use current time for today's date
+    hours = String(today.getHours()).padStart(2, '0');
+    minutes = String(today.getMinutes()).padStart(2, '0');
+    seconds = String(today.getSeconds()).padStart(2, '0');
+  } else {
+    // Use 08:00:00 for backdated dates
+    hours = '08';
+    minutes = '00';
+    seconds = '00';
+  }
+  
+  // Format date part
+  var day = String(dateObj.getDate()).padStart(2, '0');
+  var month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  var year = dateObj.getFullYear();
+  
+  return day + '/' + month + '/' + year + ' ' + hours + ':' + minutes + ':' + seconds;
+}
+
 function getSheetData(sheet) {
   if (!sheet) return [];
   var range = sheet.getDataRange();
@@ -232,7 +261,7 @@ function addInventoryLog(e) {
     
     var newRow = [
       Utilities.getUuid(),
-      new Date(),
+      formatDateForSheet(item.timestamp || new Date()),
       item.sku || "",
       logQuantity,
       item.mode || "",
@@ -384,7 +413,7 @@ function updateInventorySnapshot(inventoryUpdates) {
       // Update existing row
       rowsToUpdate.push({
         rowIndex: existingRecord.rowIndex,
-        values: [newStock, new Date()]
+        values: [newStock, formatDateForSheet(new Date())]
       });
       addLog("Will update existing row for " + sku + " at " + location + ": Stock=" + newStock);
     } else {
@@ -394,7 +423,7 @@ function updateInventorySnapshot(inventoryUpdates) {
         sku, 
         location, 
         newStock, 
-        new Date(), // LastUpdated
+        formatDateForSheet(new Date()), // LastUpdated
         0, // InventoryValue (will be calculated later)
         "", // DaysSinceLastSale
         "Green", // StockStatus (will be calculated later)
@@ -587,7 +616,7 @@ function updateSalesSnapshot(salesUpdates) {
   salesUpdates.forEach(update => {
     var sku = update.sku;
     var qty = update.qty;
-    var ts = update.timestamp || today;
+    var ts = update.timestamp ? new Date(update.timestamp) : today;
     var saleDateStr = ts.toDateString();
 
     addLog("Processing SALE entry: SKU=" + sku + ", Qty=" + qty + ", Date=" + saleDateStr + ", Today=" + todayStr + ", Timestamp=" + ts);
@@ -606,8 +635,11 @@ function updateSalesSnapshot(salesUpdates) {
     // Update total sold (cumulative)
     rec.total += qty;
     
-    // Update last sold date - ensure it's a proper Date object
-    rec.lastSold = new Date(ts);
+    // Update last sold date - only if more recent than existing
+    var newSaleDate = new Date(ts);
+    if (!rec.lastSold || newSaleDate > rec.lastSold) {
+      rec.lastSold = newSaleDate;
+    }
     
     // Handle TodaySales - only update if the sale is from today
     if (saleDateStr === todayStr) {
@@ -636,8 +668,16 @@ function updateSalesSnapshot(salesUpdates) {
     addLog("Calculated rolling windows for " + sku + ": Last7Days=" + rollingData.last7Days + ", Last30Days=" + rollingData.last30Days);
   });
 
-  // Now update the actual sheet with all changes
-  salesMap.forEach((rec, sku) => {
+  // Create a filtered map containing only affected SKUs for batch update
+  var affectedSKUsForUpdate = new Map();
+  salesUpdates.forEach(update => {
+    if (salesMap.has(update.sku)) {
+      affectedSKUsForUpdate.set(update.sku, salesMap.get(update.sku));
+    }
+  });
+  
+  // Now update the actual sheet with changes for affected SKUs only
+  affectedSKUsForUpdate.forEach((rec, sku) => {
     if (rec.rowIndex !== -1) {
       // Update existing row
       var updateValues = [];
@@ -669,7 +709,7 @@ function updateSalesSnapshot(salesUpdates) {
         addLog("Setting TodaySales for " + sku + " to: " + todaySalesValue + " (type: " + typeof todaySalesValue + ")");
       }
       if (lastUpdatedIndex !== -1) {
-        updateValues.push(new Date());
+        updateValues.push(formatDateForSheet(new Date()));
         updateColumns.push(lastUpdatedIndex + 1);
       }
       
@@ -679,7 +719,7 @@ function updateSalesSnapshot(salesUpdates) {
         salesSnapshotSheet.getRange(rec.rowIndex, colIndex).setValue(value);
       });
       
-      addLog("Updated existing sales record for SKU " + sku + ": Total=" + rec.total + ", TodaySales=" + rec.todaySales + ", Last7Days=" + rec.last7 + ", Last30Days=" + rec.last30);
+      addLog("Updated existing sales record for affected SKU " + sku + ": Total=" + rec.total + ", TodaySales=" + rec.todaySales + ", Last7Days=" + rec.last7 + ", Last30Days=" + rec.last30);
     } else {
       // Append new row
       var newRow = [
@@ -688,8 +728,8 @@ function updateSalesSnapshot(salesUpdates) {
         rec.total, // TotalSold
         rec.last7, // Last7Days
         rec.last30, // Last30Days
-        rec.lastSold instanceof Date ? rec.lastSold : new Date(rec.lastSold), // LastSoldDate - ensure proper Date object
-        new Date(), // LastUpdated
+        formatDateForSheet(rec.lastSold instanceof Date ? rec.lastSold : new Date(rec.lastSold)), // LastSoldDate - ensure proper Date object
+        formatDateForSheet(new Date()), // LastUpdated
         parseInt(rec.todaySales) || 0, // TodaySales - ensure it's a number
         0, // CumulativeValue (will be calculated below)
         "" // TopSellerRank (will be calculated below)
@@ -700,12 +740,16 @@ function updateSalesSnapshot(salesUpdates) {
       var newRowIndex = salesSnapshotSheet.getLastRow();
       rec.rowIndex = newRowIndex;
       
-      addLog("Appended new sales record for SKU " + sku + " at row " + newRowIndex + ": " + JSON.stringify(newRow));
+      addLog("Appended new sales record for affected SKU " + sku + " at row " + newRowIndex + ": " + JSON.stringify(newRow));
     }
   });
   
-  // Now update calculated columns (CumulativeValue, TopSellerRank) for ALL rows
-  updateSalesCalculatedColumns(salesMap);
+  // Now update calculated columns (CumulativeValue, TopSellerRank) for affected rows only
+  var affectedSKUs = new Map();
+  salesUpdates.forEach(update => {
+    affectedSKUs.set(update.sku, salesMap.get(update.sku));
+  });
+  updateSalesCalculatedColumns(affectedSKUs);
   
   addLog("updateSalesSnapshot completed successfully");
 }
@@ -746,6 +790,7 @@ function updateSalesCalculatedColumns(salesMap) {
   // Calculate cumulative values and prepare for ranking
   var salesWithValues = [];
   
+  // Only process affected SKUs, not all sales data
   salesMap.forEach((rec, sku) => {
     var unitPrice = productMap.get(sku) || 0;
     var cumulativeValue = rec.total * unitPrice;
@@ -757,13 +802,13 @@ function updateSalesCalculatedColumns(salesMap) {
       rowIndex: rec.rowIndex
     });
     
-    addLog("Calculated cumulative value for " + sku + ": " + rec.total + " × " + unitPrice + " = " + cumulativeValue);
+    addLog("Calculated cumulative value for affected SKU " + sku + ": " + rec.total + " × " + unitPrice + " = " + cumulativeValue);
   });
 
   // Sort by cumulative value for ranking
   salesWithValues.sort((a, b) => b.cumulativeValue - a.cumulativeValue);
 
-  // Update calculated columns for ALL rows (both existing and new)
+  // Update calculated columns for affected rows only
   salesWithValues.forEach((item, index) => {
     var rank = index + 1;
     var topSellerRank = rank <= 10 ? rank.toString() : ""; // Just the number, not "Top 1"
@@ -777,7 +822,7 @@ function updateSalesCalculatedColumns(salesMap) {
         salesSnapshotSheet.getRange(item.rowIndex, topSellerRankIndex + 1).setValue(topSellerRank);
       }
       
-      addLog("Updated calculated columns for " + item.sku + " at row " + item.rowIndex + ": CumulativeValue=" + item.cumulativeValue + ", TopSellerRank=" + topSellerRank);
+      addLog("Updated calculated columns for affected SKU " + item.sku + " at row " + item.rowIndex + ": CumulativeValue=" + item.cumulativeValue + ", TopSellerRank=" + topSellerRank);
     }
   });
 
@@ -970,7 +1015,7 @@ function addTransaction(data) {
   // Expected data keys: SKU, Quantity, Mode, SourceLocation, DestinationLocation, User, Notes
   try {
     var newId = Utilities.getUuid();
-    var timestamp = new Date();
+    var timestamp = formatDateForSheet(new Date());
 
     logSheet.appendRow([
       newId,
@@ -1174,7 +1219,7 @@ function updateSnapshots() {
       var s = snapshot[key];
       addLog("Inventory entry: " + s.SKU + " at " + s.Location + " - Stock: " + s.CurrentStock + ", Value: " + s.InventoryValue + ", DaysSinceLastSale: " + s.DaysSinceLastSale + ", Last7DaysSales: " + s.Last7DaysSales);
       snapshotSheet.appendRow([
-        s.SnapshotID, s.SKU, s.Location, s.CurrentStock, s.LastUpdated, s.InventoryValue, s.DaysSinceLastSale, s.StockStatus, s.Last7DaysSales
+        s.SnapshotID, s.SKU, s.Location, s.CurrentStock, formatDateForSheet(s.LastUpdated), s.InventoryValue, s.DaysSinceLastSale, s.StockStatus, s.Last7DaysSales
       ]);
     }
 
@@ -1198,7 +1243,7 @@ function updateSnapshots() {
             Last7Days: 0,
             Last30Days: 0,
             LastSoldDate: "",
-            LastUpdated: new Date(),
+            LastUpdated: formatDateForSheet(new Date()),
             TodaySales: 0,
             CumulativeValue: 0,
             TopSellerRank: ""
@@ -1206,7 +1251,7 @@ function updateSnapshots() {
         }
 
         sales[sku].TotalSold += qty;
-        sales[sku].LastSoldDate = saleDate;
+        sales[sku].LastSoldDate = formatDateForSheet(saleDate);
         
         // Calculate today's sales
         if (saleDateStr === todayStr) {
@@ -1264,7 +1309,7 @@ function updateSnapshots() {
       var s = sales[sku];
       addLog("Sales entry: " + s.SKU + " - TotalSold: " + s.TotalSold + ", TodaySales: " + s.TodaySales + ", Last7Days: " + s.Last7Days + ", Last30Days: " + s.Last30Days);
       salesSnapshotSheet.appendRow([
-        s.SnapshotID, s.SKU, s.TotalSold, s.Last7Days, s.Last30Days, s.LastSoldDate, s.LastUpdated, s.TodaySales, s.CumulativeValue, s.TopSellerRank
+        s.SnapshotID, s.SKU, s.TotalSold, s.Last7Days, s.Last30Days, formatDateForSheet(s.LastSoldDate), formatDateForSheet(s.LastUpdated), s.TodaySales, s.CumulativeValue, s.TopSellerRank
       ]);
     }
 

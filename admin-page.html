@@ -82,6 +82,12 @@
           </div>
           
           <div class="form-group">
+            <label class="form-label" for="receivingTransactionDate">Transaction Date:</label>
+            <input type="date" id="receivingTransactionDate" name="receivingTransactionDate" class="form-input" required>
+            <small class="form-help">Date when inventory was received (defaults to today)</small>
+          </div>
+          
+          <div class="form-group">
             <label class="form-label" for="user">User Name:</label>
             <input type="text" id="user" name="user" class="form-input" placeholder="Enter your name" required>
           </div>
@@ -151,6 +157,12 @@
             <input type="hidden" id="transferSource" name="transferSource" required>
             <input type="hidden" id="transferDestination" name="transferDestination" required>
             <div id="transferDirection" class="form-help"></div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="transferTransactionDate">Transaction Date:</label>
+            <input type="date" id="transferTransactionDate" name="transferTransactionDate" class="form-input" required>
+            <small class="form-help">Date when transfer occurred (defaults to today)</small>
           </div>
           
           <div class="form-group">
@@ -237,6 +249,12 @@
           </div>
           
           <div class="form-group">
+            <label class="form-label" for="adjustmentTransactionDate">Transaction Date:</label>
+            <input type="date" id="adjustmentTransactionDate" name="adjustmentTransactionDate" class="form-input" required>
+            <small class="form-help">Date when adjustment was made (defaults to today)</small>
+          </div>
+          
+          <div class="form-group">
             <label class="form-label" for="adjustmentUser">User Name:</label>
             <input type="text" id="adjustmentUser" name="adjustmentUser" class="form-input" placeholder="Enter your name" required>
           </div>
@@ -278,6 +296,12 @@
           <div class="form-group">
             <label class="form-label" for="salesUser">User Name:</label>
             <input type="text" id="salesUser" name="salesUser" class="form-input" placeholder="Enter your name" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="salesTransactionDate">Transaction Date:</label>
+            <input type="date" id="salesTransactionDate" name="salesTransactionDate" class="form-input" required>
+            <small class="form-help">Date when sales occurred (defaults to today)</small>
           </div>
           
           <div class="form-group">
@@ -481,9 +505,33 @@
     
 
 
+    // Initialize date inputs to today's date
+    function initializeDateInputs() {
+      const receivingDateInput = document.getElementById('receivingTransactionDate');
+      if (receivingDateInput && !receivingDateInput.value) {
+        receivingDateInput.value = new Date().toISOString().split('T')[0];
+      }
+      
+      const transferDateInput = document.getElementById('transferTransactionDate');
+      if (transferDateInput && !transferDateInput.value) {
+        transferDateInput.value = new Date().toISOString().split('T')[0];
+      }
+      
+      const adjustmentDateInput = document.getElementById('adjustmentTransactionDate');
+      if (adjustmentDateInput && !adjustmentDateInput.value) {
+        adjustmentDateInput.value = new Date().toISOString().split('T')[0];
+      }
+      
+      const salesDateInput = document.getElementById('salesTransactionDate');
+      if (salesDateInput && !salesDateInput.value) {
+        salesDateInput.value = new Date().toISOString().split('T')[0];
+      }
+    }
+
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
       initializeTheme(); // Initialize theme first
+      initializeDateInputs(); // Initialize date inputs to today
       testConnection();
       setupReceivingForm();
       loadAllProducts(); // Load products once for all sections
@@ -1053,7 +1101,8 @@
         source: 'Supplier',
         destination: formData.get('destination'),
         user: formData.get('user'),
-        notes: formData.get('notes') || ''
+        notes: formData.get('notes') || '',
+        timestamp: new Date(formData.get('receivingTransactionDate'))
       };
 
       submitReceiving(data);
@@ -1104,7 +1153,11 @@
       const warehouseBtn = document.getElementById('warehouseBtn');
       selectLocation('Shop', shopBtn, warehouseBtn);
       
-      // silent
+      // Reset date to today
+      const receivingDateInput = document.getElementById('receivingTransactionDate');
+      if (receivingDateInput) {
+        receivingDateInput.value = new Date().toISOString().split('T')[0];
+      }
     }
 
     // ====== Inventory Snapshot ======
@@ -1305,7 +1358,8 @@
         source: formData.get('transferSource'),
         destination: formData.get('transferDestination'),
         user: formData.get('transferUser'),
-        notes: formData.get('transferNotes') || ''
+        notes: formData.get('transferNotes') || '',
+        timestamp: new Date(formData.get('transferTransactionDate'))
       };
 
       submitTransfer(data);
@@ -1359,6 +1413,12 @@
       // Clear direction display
       const transferDirectionDiv = document.getElementById('transferDirection');
       transferDirectionDiv.textContent = 'From: Shop → To: Warehouse';
+      
+      // Reset date to today
+      const transferDateInput = document.getElementById('transferTransactionDate');
+      if (transferDateInput) {
+        transferDateInput.value = new Date().toISOString().split('T')[0];
+      }
       
       // silent
     }
@@ -1666,7 +1726,8 @@
         source: formData.get('adjustmentLocation'), // Source is the location being adjusted
         destination: formData.get('adjustmentLocation'), // Destination is the location being adjusted
         user: formData.get('adjustmentUser'),
-        notes: formData.get('adjustmentNotes') || ''
+        notes: formData.get('adjustmentNotes') || '',
+        timestamp: new Date(formData.get('adjustmentTransactionDate'))
       };
 
       submitAdjustment(data);
@@ -1726,7 +1787,11 @@
       currentStockLoading.style.display = 'none';
       currentStockContent.style.display = 'none';
       
-      // silent
+      // Reset date to today
+      const adjustmentDateInput = document.getElementById('adjustmentTransactionDate');
+      if (adjustmentDateInput) {
+        adjustmentDateInput.value = new Date().toISOString().split('T')[0];
+      }
     }
 
     function setupAdjustmentProductSearch() {
@@ -2039,9 +2104,6 @@
       });
     }
 
-    function clearSalesForm() {
-      document.getElementById('salesForm').reset();
-    }
 
     function showSalesSearchResults(products, searchTerm, minScore = 0, totalMatches = 0, totalProducts = 0) {
       const salesSearchResults = document.getElementById('salesSearchResults');
@@ -2403,7 +2465,11 @@
       salesRecords = [];
       updateSalesRecordsTable();
       
-      // silent
+      // Reset date to today
+      const salesDateInput = document.getElementById('salesTransactionDate');
+      if (salesDateInput) {
+        salesDateInput.value = new Date().toISOString().split('T')[0];
+      }
       
       console.log('Sales form cleared');
     }
@@ -2419,9 +2485,15 @@
       
       const user = document.getElementById('salesUser').value.trim();
       const notes = document.getElementById('salesNotes').value.trim();
+      const transactionDate = document.getElementById('salesTransactionDate').value;
       
       if (!user) {
         alert('Please enter your name');
+        return;
+      }
+      
+      if (!transactionDate) {
+        alert('Please select a transaction date');
         return;
       }
       
@@ -2433,7 +2505,8 @@
         source: 'Shop',
         destination: 'Customer',
         user: user,
-        notes: notes || ''
+        notes: notes || '',
+        timestamp: new Date(transactionDate)
       }));
       
       console.log('Submitting bulk sales data:', bulkData);
@@ -2458,7 +2531,6 @@
           showSuccess(
             `${bulkData.length} sales recorded`
           );
-          clearSalesForm();
           loadSnapshot(); // Refresh inventory display
         } else {
           throw new Error(result.message || 'Unknown error occurred');
@@ -2473,6 +2545,8 @@
       })
       .finally(() => {
         salesSubmitBtn.disabled = false;
+        // Always clear form after submission (CORS error is frontend-only, backend processes successfully)
+        clearSalesForm();
       });
     }
 
