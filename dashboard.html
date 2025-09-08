@@ -208,7 +208,10 @@
             <div class="chart-header">
               <h3 class="chart-title">Cumulative Sales by SKU</h3>
               <div class="chart-controls">
-                <button class="btn btn-pill active" id="cumulative7Days" onclick="switchCumulativePeriod(7)">
+                <button class="btn btn-pill active" id="cumulativeAll" onclick="switchCumulativePeriod('all')">
+                  All
+                </button>
+                <button class="btn btn-pill" id="cumulative7Days" onclick="switchCumulativePeriod(7)">
                   7 Days
                 </button>
                 <button class="btn btn-pill" id="cumulative30Days" onclick="switchCumulativePeriod(30)">
@@ -579,13 +582,12 @@
             dashboardData.inventorySnapshot = [];
             dashboardData.lastUpdated = new Date();
             showInfo('No inventory data yet - starting fresh');
-            console.log('Inventory snapshot loaded: Empty (no inventory data yet)');
             return [];
           } else {
             dashboardData.inventorySnapshot = data.data;
             dashboardData.lastUpdated = new Date();
             showSuccess('Inventory data loaded successfully');
-            console.log('Inventory snapshot loaded:', data.data);
+            // console.log('Inventory snapshot loaded:', data.data);
             return data.data;
           }
         } else {
@@ -593,7 +595,7 @@
         }
       } catch (error) {
         showError(`Failed to load inventory: ${error.message}`);
-        console.error('Error fetching inventory snapshot:', error);
+        // console.error('Error fetching inventory snapshot:', error);
         return null;
       }
     }
@@ -618,13 +620,13 @@
             dashboardData.salesSnapshot = [];
             dashboardData.lastUpdated = new Date();
             showInfo('No sales data yet - starting fresh');
-            console.log('Sales snapshot loaded: Empty (no sales data yet)');
+            // console.log('Sales snapshot loaded: Empty (no sales data yet)');
             return [];
           } else {
             dashboardData.salesSnapshot = data.data;
             dashboardData.lastUpdated = new Date();
             showSuccess('Sales data loaded successfully');
-            console.log('Sales snapshot loaded:', data.data);
+            // console.log('Sales snapshot loaded:', data.data);
             return data.data;
           }
         } else {
@@ -632,7 +634,7 @@
         }
       } catch (error) {
         // For now, just log the error since endpoint might not exist yet
-        console.log('Sales snapshot endpoint not yet implemented:', error.message);
+        // console.log('Sales snapshot endpoint not yet implemented:', error.message);
         return null;
       }
     }
@@ -652,14 +654,14 @@
           dashboardData.products = data.data;
           dashboardData.lastUpdated = new Date();
           showSuccess(`Loaded ${data.data.length} products`);
-          console.log('Products loaded:', data.data);
+          // console.log('Products loaded:', data.data);
           return data.data;
         } else {
           throw new Error(data.message || 'No products available');
         }
       } catch (error) {
         showError(`Failed to load products: ${error.message}`);
-        console.error('Error fetching products:', error);
+        // console.error('Error fetching products:', error);
         return null;
       }
     }
@@ -687,7 +689,7 @@
             showWarning('Dashboard loaded with limited data - some features may not work');
           }
           
-          console.log('All dashboard data loaded:', dashboardData);
+          // console.log('All dashboard data loaded:', dashboardData);
           
           // Hide loading and calculate KPIs (will show 0 values for empty data)
           hideKPILoading();
@@ -706,7 +708,7 @@
         }
       } catch (error) {
         showError(`Failed to load dashboard data: ${error.message}`);
-        console.error('Error loading dashboard data:', error);
+        // console.error('Error loading dashboard data:', error);
         hideKPILoading();
         return false;
       }
@@ -725,14 +727,14 @@
         const data = await response.json();
         if (data.status === "success") {
           showSuccess('API connection successful');
-          console.log('API test results:', data.results);
+          // console.log('API test results:', data.results);
           return data.results;
         } else {
           throw new Error(data.message || 'API test failed');
         }
       } catch (error) {
         showError(`API connection failed: ${error.message}`);
-        console.error('API connection test failed:', error);
+        // console.error('API connection test failed:', error);
         return null;
       }
     }
@@ -747,35 +749,35 @@
     function calculateSalesValue(quantity, sku, products) {
       // Input validation
       if (!quantity || quantity <= 0) {
-        console.log(`Invalid quantity for SKU ${sku}: ${quantity}`);
+        // console.log(`Invalid quantity for SKU ${sku}: ${quantity}`);
         return 0;
       }
       
       if (!sku || typeof sku !== 'string') {
-        console.warn(`Invalid SKU: ${sku}`);
+        // console.warn(`Invalid SKU: ${sku}`);
         return 0;
       }
       
       if (!products || products.length === 0) {
-        console.warn('No products available for price lookup');
+        // console.warn('No products available for price lookup');
         return 0;
       }
       
       const product = products.find(p => p.SKU === sku);
       if (!product) {
-        console.warn(`Product not found for SKU: ${sku}`);
+        // console.warn(`Product not found for SKU: ${sku}`);
         return 0;
       }
       
       const price = parseFloat(product.Price) || 0;
       if (price <= 0) {
-        console.warn(`Invalid price for SKU ${sku}: RM${price}`);
+        // console.warn(`Invalid price for SKU ${sku}: RM${price}`);
         return 0;
       }
       
       const saleValue = quantity * price;
       
-      console.log(`SKU: ${sku}, Quantity: ${quantity}, Price: RM${price}, Sale Value: RM${saleValue.toFixed(2)}`);
+      // console.log(`SKU: ${sku}, Quantity: ${quantity}, Price: RM${price}, Sale Value: RM${saleValue.toFixed(2)}`);
       return saleValue;
     }
     
@@ -835,7 +837,7 @@
     let topSkuPerformanceChart = null;
     let topSellingChart = null;
     let currentTrendPeriod = 7; // Default to 7 days
-    let currentCumulativePeriod = 7; // Default to 7 days
+    let currentCumulativePeriod = 'all'; // Default to all time
     
     // Calculate overview KPIs
     function calculateOverviewKPIs() {
@@ -846,11 +848,11 @@
       let unitsSoldToday = 0;
       
       if (dashboardData.salesSnapshot && dashboardData.salesSnapshot.length > 0 && dashboardData.products) {
-        console.log('Processing sales snapshot data:', dashboardData.salesSnapshot);
-        console.log('Available products for price lookup:', dashboardData.products.length);
+        // console.log('Processing sales snapshot data:', dashboardData.salesSnapshot);
+        // console.log('Available products for price lookup:', dashboardData.products.length);
         
         dashboardData.salesSnapshot.forEach(sale => {
-          console.log('Processing sale record:', sale);
+          // console.log('Processing sale record:', sale);
           const quantity = sale.TodaySales || 0;
           const sku = sale.SKU;
           
@@ -860,9 +862,9 @@
           unitsSoldToday += quantity;
         });
         
-        console.log('Calculated totals - Sales Value:', totalSalesValueToday.toFixed(2), 'Units:', unitsSoldToday);
+        // console.log('Calculated totals - Sales Value:', totalSalesValueToday.toFixed(2), 'Units:', unitsSoldToday);
       } else {
-        console.log('No sales data or products available - showing 0 values');
+        // console.log('No sales data or products available - showing 0 values');
       }
       
       // Check if we have any data to display
@@ -872,11 +874,11 @@
       if (!hasAnyData) {
         // No data available - show warning state
         showKPINoData();
-        console.log('No data available - KPI cards showing warning state');
+        // console.log('No data available - KPI cards showing warning state');
       } else if (!dashboardData.products || dashboardData.products.length === 0) {
         // No products available - show warning for sales calculations
         showWarning('Product data unavailable - sales values may be inaccurate');
-        console.log('No products available - sales calculations may be incomplete');
+        // console.log('No products available - sales calculations may be incomplete');
       } else {
         // Update KPI cards with visual feedback
         updateKPICard('totalSalesToday', totalSalesValueToday > 0 ? `RM ${totalSalesValueToday.toFixed(2)}` : 'RM 0.00', totalSalesValueToday > 0 ? 'success' : 'warning');
@@ -950,7 +952,7 @@
       const chartSection = document.querySelector('#topSellingChart').closest('.chart-section');
       
       if (!dashboardData.salesSnapshot || dashboardData.salesSnapshot.length === 0) {
-        console.log('No sales data available - top selling chart will show empty data');
+        // console.log('No sales data available - top selling chart will show empty data');
         chartSection.classList.add('empty');
         return;
       }
@@ -962,7 +964,7 @@
         .slice(0, 5);
       
       if (topSelling.length === 0) {
-        console.log('No sales today - top selling chart will show empty data');
+        // console.log('No sales today - top selling chart will show empty data');
         chartSection.classList.add('empty');
         return;
       }
@@ -1022,7 +1024,7 @@
         }
       });
       
-      console.log('Top selling chart updated with data:', topSelling);
+      // console.log('Top selling chart updated with data:', topSelling);
     }
     
     // Update Cumulative Sales by SKU table
@@ -1030,7 +1032,7 @@
       const tableSection = document.querySelector('#cumulativeSalesTable').closest('.chart-section');
       
       if (!dashboardData.salesSnapshot || dashboardData.salesSnapshot.length === 0) {
-        console.log('No sales data available - cumulative sales table will show empty data');
+        // console.log('No sales data available - cumulative sales table will show empty data');
         showEmptyTable();
         return;
       }
@@ -1039,14 +1041,14 @@
       const cumulativeData = prepareCumulativeTableData(currentCumulativePeriod);
       
       if (cumulativeData.length === 0) {
-        console.log('No cumulative data available - table will show empty data');
+        // console.log('No cumulative data available - table will show empty data');
         showEmptyTable();
         return;
       }
       
       // Populate table with data
       populateCumulativeSalesTable(cumulativeData);
-      console.log('Cumulative sales table updated with data:', cumulativeData);
+      // console.log('Cumulative sales table updated with data:', cumulativeData);
     }
     
     // Prepare cumulative table data based on period
@@ -1059,8 +1061,17 @@
         
         dashboardData.salesSnapshot.forEach(sale => {
           const sku = sale.SKU;
-          // ✅ Use the correct field based on period (7 days or 30 days)
-          const quantity = period === 7 ? (sale.Last7Days || 0) : (sale.Last30Days || 0);
+          let quantity, saleValue;
+          
+          if (period === 'all') {
+            // ✅ All-time data: Use TotalSold and CumulativeValue (pre-calculated)
+            quantity = sale.TotalSold || 0;
+            saleValue = parseFloat(sale.CumulativeValue) || 0;
+          } else {
+            // ✅ Period-specific data: Use Last7Days/Last30Days and calculate value
+            quantity = period === 7 ? (sale.Last7Days || 0) : (sale.Last30Days || 0);
+            saleValue = calculateSalesValue(quantity, sku, dashboardData.products);
+          }
           
           if (!skuData[sku]) {
             skuData[sku] = {
@@ -1071,8 +1082,6 @@
             };
           }
           
-          // Calculate sales value using the period-specific quantity
-          const saleValue = calculateSalesValue(quantity, sku, dashboardData.products);
           skuData[sku].unitsSold += quantity;
           skuData[sku].salesValue += saleValue;
           
@@ -1088,7 +1097,8 @@
           .filter(item => item.salesValue > 0)
           .sort((a, b) => b.salesValue - a.salesValue);
         
-        console.log(`Cumulative table data prepared for ${period} days:`, sortedSKUs);
+        const periodLabel = period === 'all' ? 'all time' : `${period} days`;
+        // console.log(`Cumulative table data prepared for ${periodLabel}:`, sortedSKUs);
         return sortedSKUs;
       }
       
@@ -1100,7 +1110,7 @@
       const tableBody = document.getElementById('cumulativeSalesTableBody');
       
       if (!tableBody) {
-        console.error('Table body element not found');
+        // console.error('Table body element not found');
         return;
       }
       
@@ -1138,7 +1148,7 @@
     // Update Inventory Alerts Table
     function updateInventoryAlertsTable() {
       if (!dashboardData.inventorySnapshot || dashboardData.inventorySnapshot.length === 0) {
-        console.log('No inventory data available - inventory alerts table will show empty data');
+        // console.log('No inventory data available - inventory alerts table will show empty data');
         showEmptyInventoryTable();
         return;
       }
@@ -1147,14 +1157,14 @@
       const inventoryData = prepareInventoryAlertsData();
       
       if (inventoryData.length === 0) {
-        console.log('No inventory data available - table will show empty data');
+        // console.log('No inventory data available - table will show empty data');
         showEmptyInventoryTable();
         return;
       }
       
       // Populate table with data
       populateInventoryAlertsTable(inventoryData);
-      console.log('Inventory alerts table updated with data:', inventoryData);
+      // console.log('Inventory alerts table updated with data:', inventoryData);
     }
     
     // Prepare inventory alerts data
@@ -1195,7 +1205,7 @@
           return a.sku.localeCompare(b.sku);
         });
         
-        console.log('Inventory alerts data prepared:', tableData);
+        // console.log('Inventory alerts data prepared:', tableData);
         return tableData;
       }
       
@@ -1207,7 +1217,7 @@
       const tableBody = document.getElementById('inventoryAlertsTableBody');
       
       if (!tableBody) {
-        console.error('Inventory alerts table body element not found');
+        // console.error('Inventory alerts table body element not found');
         return;
       }
       
@@ -1262,7 +1272,7 @@
     // Update Warehouse Inventory Table
     function updateWarehouseInventoryTable() {
       if (!dashboardData.inventorySnapshot || dashboardData.inventorySnapshot.length === 0) {
-        console.log('No inventory data available - warehouse inventory table will show empty data');
+        // console.log('No inventory data available - warehouse inventory table will show empty data');
         showEmptyWarehouseTable();
         return;
       }
@@ -1271,14 +1281,14 @@
       const warehouseData = prepareWarehouseInventoryData();
       
       if (warehouseData.length === 0) {
-        console.log('No warehouse data available - table will show empty data');
+        // console.log('No warehouse data available - table will show empty data');
         showEmptyWarehouseTable();
         return;
       }
       
       // Populate table with data
       populateWarehouseInventoryTable(warehouseData);
-      console.log('Warehouse inventory table updated with data:', warehouseData);
+      // console.log('Warehouse inventory table updated with data:', warehouseData);
     }
     
     // Prepare warehouse inventory data
@@ -1319,7 +1329,7 @@
           return a.sku.localeCompare(b.sku);
         });
         
-        console.log('Warehouse inventory data prepared:', tableData);
+        // console.log('Warehouse inventory data prepared:', tableData);
         return tableData;
       }
       
@@ -1331,7 +1341,7 @@
       const tableBody = document.getElementById('warehouseInventoryTableBody');
       
       if (!tableBody) {
-        console.error('Warehouse inventory table body element not found');
+        // console.error('Warehouse inventory table body element not found');
         return;
       }
       
@@ -1376,6 +1386,7 @@
       currentCumulativePeriod = period;
       
       // Update button states
+      document.getElementById('cumulativeAll').classList.toggle('active', period === 'all');
       document.getElementById('cumulative7Days').classList.toggle('active', period === 7);
       document.getElementById('cumulative30Days').classList.toggle('active', period === 30);
       
@@ -1390,7 +1401,7 @@
       const tableBody = document.getElementById('deadStockTableBody');
       
       if (!tableBody) {
-        console.error('Dead stock table body element not found');
+        // console.error('Dead stock table body element not found');
         return;
       }
       
@@ -1409,7 +1420,7 @@
       const deadStock = [];
       
       if (!dashboardData.inventorySnapshot || !dashboardData.salesSnapshot || !dashboardData.products) {
-        console.log('Required data not available for dead stock analysis');
+        // console.log('Required data not available for dead stock analysis');
         return deadStock;
       }
       
@@ -1441,7 +1452,7 @@
               daysSinceLastSale = Math.floor(timeDiff / (1000 * 3600 * 24));
             }
           } catch (error) {
-            console.warn(`Invalid date format for SKU ${sku}:`, salesRecord.LastSoldDate);
+            // console.warn(`Invalid date format for SKU ${sku}:`, salesRecord.LastSoldDate);
           }
         }
         
@@ -1471,7 +1482,7 @@
         return b.stockValue - a.stockValue;
       });
       
-      console.log('Dead stock data prepared:', deadStock.length, 'items');
+      // console.log('Dead stock data prepared:', deadStock.length, 'items');
       return deadStock;
     }
     
@@ -1480,7 +1491,7 @@
       const tableBody = document.getElementById('deadStockTableBody');
       
       if (!tableBody) {
-        console.error('Dead stock table body element not found');
+        // console.error('Dead stock table body element not found');
         return;
       }
       
@@ -1530,7 +1541,7 @@
     // Update Top 10 SKU Performance chart
     function updateTopSkuPerformanceChart() {
       if (!dashboardData.salesSnapshot || dashboardData.salesSnapshot.length === 0) {
-        console.log('No sales data available - chart will show empty data');
+        // console.log('No sales data available - chart will show empty data');
         // Initialize empty chart instead of returning
       }
       
@@ -1645,13 +1656,13 @@
           salesData.push(sale[salesField] || 0);
         });
         
-        console.log(`Top 10 SKU Performance data prepared for ${period} days:`, {
-          period,
-          salesField,
-          topPerformers: skuPerformance.map(s => ({ sku: s.SKU, sales: s[salesField] }))
-        });
+        // console.log(`Top 10 SKU Performance data prepared for ${period} days:`, {
+        //   period,
+        //   salesField,
+        //   topPerformers: skuPerformance.map(s => ({ sku: s.SKU, sales: s[salesField] }))
+        // });
       } else {
-        console.log('No sales data available - chart will show empty data');
+        // console.log('No sales data available - chart will show empty data');
       }
       
       return { labels, salesData };
@@ -1674,15 +1685,15 @@
     // Refresh all sections (full dashboard refresh)
     async function refreshAllSections() {
       showInfo('Refreshing all dashboard data...');
-      console.log('🔄 Refreshing ALL sections...');
+      // console.log('🔄 Refreshing ALL sections...');
       
       try {
         await fetchAllDashboardData();
         showSuccess('All dashboard data refreshed successfully');
-        console.log('✅ All sections refresh complete');
+        // console.log('✅ All sections refresh complete');
       } catch (error) {
         showError(`Failed to refresh all sections: ${error.message}`);
-        console.error('Error refreshing all sections:', error);
+        // console.error('Error refreshing all sections:', error);
       }
     }
     
@@ -1699,22 +1710,22 @@
     
     // Smart fetch: ALWAYS fetch fresh snapshot data, but use cached product data
     async function smartFetchInventoryData() {
-      console.log('📦 Fetching fresh inventory snapshot data...');
+      // console.log('📦 Fetching fresh inventory snapshot data...');
       try {
         const inventoryData = await fetchInventorySnapshot();
         if (inventoryData !== null) {
           dashboardData.inventorySnapshot = inventoryData;
           dashboardData.lastUpdated = new Date();
-          console.log('✅ Fresh inventory data fetched and cached');
+          // console.log('✅ Fresh inventory data fetched and cached');
         }
         return inventoryData;
       } catch (error) {
-        console.error('Error fetching inventory data:', error);
-        console.log('⚠️ Falling back to cached data (if any)');
+        // console.error('Error fetching inventory data:', error);
+        // console.log('⚠️ Falling back to cached data (if any)');
         if (dashboardData.inventorySnapshot && dashboardData.inventorySnapshot.length > 0) {
-          console.log('📦 Using fallback cached inventory data');
+          // console.log('📦 Using fallback cached inventory data');
         } else {
-          console.log('❌ No cached inventory data available');
+          // console.log('❌ No cached inventory data available');
         }
         return dashboardData.inventorySnapshot || null;
       }
@@ -1722,22 +1733,22 @@
     
     // Smart fetch: ALWAYS fetch fresh sales data, but use cached product data
     async function smartFetchSalesData() {
-      console.log('💰 Fetching fresh sales snapshot data...');
+      // console.log('💰 Fetching fresh sales snapshot data...');
       try {
         const salesData = await fetchSalesSnapshot();
         if (salesData !== null) {
           dashboardData.salesSnapshot = salesData;
           dashboardData.lastUpdated = new Date();
-          console.log('✅ Fresh sales data fetched and cached');
+          // console.log('✅ Fresh sales data fetched and cached');
         }
         return salesData;
       } catch (error) {
-        console.error('Error fetching sales data:', error);
-        console.log('⚠️ Falling back to cached data (if any)');
+        // console.error('Error fetching sales data:', error);
+        // console.log('⚠️ Falling back to cached data (if any)');
         if (dashboardData.salesSnapshot && dashboardData.salesSnapshot.length > 0) {
-          console.log('💰 Using fallback cached sales data');
+          // console.log('💰 Using fallback cached sales data');
         } else {
-          console.log('❌ No cached sales data available');
+          // console.log('❌ No cached sales data available');
         }
         return dashboardData.salesSnapshot || null;
       }
@@ -1799,43 +1810,43 @@
     // Refresh overview data only
     async function refreshOverviewData() {
       showInfo('Refreshing overview data...');
-      console.log('🔄 Refreshing Overview section only...');
+      // console.log('🔄 Refreshing Overview section only...');
       await fetchOverviewData();
       calculateOverviewKPIs();
       showSuccess('Overview data refreshed');
-      console.log('✅ Overview section refresh complete');
+      // console.log('✅ Overview section refresh complete');
     }
     
     // Refresh shop information data only
     async function refreshShopInfo() {
       showInfo('Refreshing shop information...');
-      console.log('🔄 Refreshing Shop Information section only...');
+      // console.log('🔄 Refreshing Shop Information section only...');
       await fetchShopInfoData();
       updateTopSellingChart();
       updateCumulativeSalesTable();
       updateInventoryAlertsTable();
       showSuccess('Shop information refreshed');
-      console.log('✅ Shop Information section refresh complete');
+      // console.log('✅ Shop Information section refresh complete');
     }
     
     // Refresh warehouse data only
     async function refreshWarehouseData() {
       showInfo('Refreshing warehouse data...');
-      console.log('🔄 Refreshing Warehouse section only...');
+      // console.log('🔄 Refreshing Warehouse section only...');
       await fetchWarehouseData();
       updateWarehouseInventoryTable();
       showSuccess('Warehouse data refreshed');
-      console.log('✅ Warehouse section refresh complete');
+      // console.log('✅ Warehouse section refresh complete');
     }
     
     // Refresh dead stock data only
     async function refreshDeadStockData() {
       showInfo('Refreshing dead stock data...');
-      console.log('🔄 Refreshing Dead Stock section only...');
+      // console.log('🔄 Refreshing Dead Stock section only...');
       await fetchDeadStockData();
       updateDeadStockTable();
       showSuccess('Dead stock data refreshed');
-      console.log('✅ Dead Stock section refresh complete');
+      // console.log('✅ Dead Stock section refresh complete');
     }
 
     // ====== Theme Toggle System ======
