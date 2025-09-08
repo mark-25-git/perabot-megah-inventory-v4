@@ -7,6 +7,54 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Table Pagination Controls */
+    .pagination-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--color-background-secondary);
+      border-top: 1px solid var(--color-border);
+      margin-top: 0;
+    }
+    
+    .pagination-info {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+    
+    .pagination-controls .btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .pagination-controls .btn:hover {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    
+    .pagination-controls .icon {
+      font-size: 16px;
+    }
+    
+    /* Dark theme adjustments */
+    [data-theme="dark"] .pagination-controls {
+      background: var(--color-background-secondary);
+      border-top-color: var(--color-border);
+    }
+    
+    [data-theme="dark"] .pagination-info {
+      color: var(--color-text-secondary);
+    }
+  </style>
 </head>
 <body data-theme="dark">
   <!-- Toast Container for Floating Notifications -->
@@ -350,6 +398,80 @@
     // 
     const apiBase = "https://script.google.com/macros/s/AKfycbxWJtUf1RbkfZ5WYzduPCenebrqAbBAw20XbzCLtjs4FXH7k9Gsuyrpu4zm1Ycu2iG0/exec";
     
+    // ====== Table Pagination System ======
+    
+    // Global table pagination settings
+    const TABLE_PAGINATION = {
+      defaultLimit: 10,
+      expanded: {
+        cumulativeSales: false,
+        inventoryAlerts: false,
+        warehouseInventory: false,
+        deadStock: false
+      }
+    };
+    
+    // Add pagination controls to a table
+    function addPaginationControls(tableId, dataLength, currentLimit) {
+      const tableContainer = document.querySelector(`#${tableId}`).closest('.table-container');
+      if (!tableContainer) return;
+      
+      // Remove existing pagination controls
+      const existingControls = tableContainer.querySelector('.pagination-controls');
+      if (existingControls) {
+        existingControls.remove();
+      }
+      
+      if (dataLength <= TABLE_PAGINATION.defaultLimit) {
+        return; // No pagination needed
+      }
+      
+      const isExpanded = TABLE_PAGINATION.expanded[tableId] || false;
+      const showAll = isExpanded || currentLimit >= dataLength;
+      
+      const controlsHTML = `
+        <div class="pagination-controls">
+          <div class="pagination-info">
+            Showing ${showAll ? dataLength : currentLimit} of ${dataLength} results
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="toggleTableExpansion('${tableId}')">
+            <i class="icon ${isExpanded ? 'icon-expand-less' : 'icon-expand-more'} icon-margin-right"></i>
+            ${isExpanded ? 'Show Less' : 'Show All'}
+          </button>
+        </div>
+      `;
+      
+      tableContainer.insertAdjacentHTML('beforeend', controlsHTML);
+    }
+    
+    // Toggle table expansion
+    function toggleTableExpansion(tableId) {
+      TABLE_PAGINATION.expanded[tableId] = !TABLE_PAGINATION.expanded[tableId];
+      
+      // Re-populate the table with new limit
+      switch(tableId) {
+        case 'cumulativeSalesTable':
+          updateCumulativeSalesTable();
+          break;
+        case 'inventoryAlertsTable':
+          updateInventoryAlertsTable();
+          break;
+        case 'warehouseInventoryTable':
+          updateWarehouseInventoryTable();
+          break;
+        case 'deadStockTable':
+          updateDeadStockTable();
+          break;
+      }
+    }
+    
+    // Get paginated data
+    function getPaginatedData(data, tableId) {
+      const isExpanded = TABLE_PAGINATION.expanded[tableId] || false;
+      const limit = isExpanded ? data.length : TABLE_PAGINATION.defaultLimit;
+      return data.slice(0, limit);
+    }
+
     // ====== Toast Notification System ======
     
     // Centralized toast function that automatically handles all message types
@@ -937,7 +1059,8 @@
         
         dashboardData.salesSnapshot.forEach(sale => {
           const sku = sale.SKU;
-          const quantity = sale.TodaySales || 0;
+          // ✅ Use the correct field based on period (7 days or 30 days)
+          const quantity = period === 7 ? (sale.Last7Days || 0) : (sale.Last30Days || 0);
           
           if (!skuData[sku]) {
             skuData[sku] = {
@@ -948,7 +1071,7 @@
             };
           }
           
-          // Calculate sales value using helper function
+          // Calculate sales value using the period-specific quantity
           const saleValue = calculateSalesValue(quantity, sku, dashboardData.products);
           skuData[sku].unitsSold += quantity;
           skuData[sku].salesValue += saleValue;
@@ -965,7 +1088,7 @@
           .filter(item => item.salesValue > 0)
           .sort((a, b) => b.salesValue - a.salesValue);
         
-        console.log('Cumulative table data prepared:', sortedSKUs);
+        console.log(`Cumulative table data prepared for ${period} days:`, sortedSKUs);
         return sortedSKUs;
       }
       
@@ -984,8 +1107,11 @@
       // Clear existing rows
       tableBody.innerHTML = '';
       
+      // Get paginated data
+      const paginatedData = getPaginatedData(data, 'cumulativeSalesTable');
+      
       // Add data rows
-      data.forEach(item => {
+      paginatedData.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td class="sku-column">${item.sku}</td>
@@ -995,6 +1121,9 @@
         `;
         tableBody.appendChild(row);
       });
+      
+      // Add pagination controls
+      addPaginationControls('cumulativeSalesTable', data.length, paginatedData.length);
     }
     
     // Show empty table state
@@ -1085,8 +1214,11 @@
       // Clear existing rows
       tableBody.innerHTML = '';
       
+      // Get paginated data
+      const paginatedData = getPaginatedData(data, 'inventoryAlertsTable');
+      
       // Add data rows
-      data.forEach(item => {
+      paginatedData.forEach(item => {
         const row = document.createElement('tr');
         const statusClass = getStatusClass(item.stockStatus);
         
@@ -1099,6 +1231,9 @@
         `;
         tableBody.appendChild(row);
       });
+      
+      // Add pagination controls
+      addPaginationControls('inventoryAlertsTable', data.length, paginatedData.length);
     }
     
     // Get CSS class for stock status
@@ -1203,8 +1338,11 @@
       // Clear existing rows
       tableBody.innerHTML = '';
       
+      // Get paginated data
+      const paginatedData = getPaginatedData(data, 'warehouseInventoryTable');
+      
       // Add data rows
-      data.forEach(item => {
+      paginatedData.forEach(item => {
         const row = document.createElement('tr');
         const statusClass = getStatusClass(item.stockStatus);
         
@@ -1217,6 +1355,9 @@
         `;
         tableBody.appendChild(row);
       });
+      
+      // Add pagination controls
+      addPaginationControls('warehouseInventoryTable', data.length, paginatedData.length);
     }
     
     // Show empty warehouse table state
@@ -1346,8 +1487,11 @@
       // Clear existing rows
       tableBody.innerHTML = '';
       
+      // Get paginated data
+      const paginatedData = getPaginatedData(deadStockData, 'deadStockTable');
+      
       // Add data rows
-      deadStockData.forEach(item => {
+      paginatedData.forEach(item => {
         const row = document.createElement('tr');
         const riskClass = getDeadStockRiskClass(item.daysSinceLastSale);
         
@@ -1361,6 +1505,9 @@
         `;
         tableBody.appendChild(row);
       });
+      
+      // Add pagination controls
+      addPaginationControls('deadStockTable', deadStockData.length, paginatedData.length);
     }
     
     // Get risk class for dead stock row styling

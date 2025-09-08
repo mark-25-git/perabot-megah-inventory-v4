@@ -427,7 +427,7 @@ function updateInventorySnapshot(inventoryUpdates) {
         0, // InventoryValue (will be calculated later)
         "", // DaysSinceLastSale
         "Green", // StockStatus (will be calculated later)
-        0 // Last7DaysSales
+        0 // Last7DaysSales (will be replaced with formula)
       ];
       rowsToAppend.push(newRow);
       addLog("Will append new row for " + sku + " at " + location + ": Stock=" + newStock);
@@ -445,7 +445,15 @@ function updateInventorySnapshot(inventoryUpdates) {
   // Batch append new rows
   if (rowsToAppend.length > 0) {
     addLog("Appending " + rowsToAppend.length + " new rows");
-    snapshotSheet.getRange(snapshotSheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
+    var startRow = snapshotSheet.getLastRow() + 1;
+    snapshotSheet.getRange(startRow, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
+    
+    // Auto-fill Last7DaysSales formulas for new rows
+    rowsToAppend.forEach((row, index) => {
+      var sku = row[1]; // SKU is in column B (index 1)
+      var rowIndex = startRow + index;
+      autoFillInventoryFormulas(sku, rowIndex);
+    });
   }
 
   // Now update calculated columns (InventoryValue, StockStatus) for affected rows
@@ -513,6 +521,9 @@ function updateInventoryCalculatedColumns(inventoryUpdates) {
         }
         snapshotSheet.getRange(rowIndex, statusIndex + 1).setValue(stockStatus);
         
+        // Auto-fill Last7DaysSales formula if it doesn't exist
+        autoFillInventoryFormulas(sku, rowIndex);
+        
         addLog("Updated calculated columns for " + sku + " at " + location + ": Value=" + inventoryValue + ", Status=" + stockStatus);
         break;
       }
@@ -523,38 +534,179 @@ function updateInventoryCalculatedColumns(inventoryUpdates) {
 }
 
 /*************************************************
- * CALCULATE ROLLING WINDOW SALES
+ * FORMULA DETECTION AND AUTO-FILL FUNCTIONS
  *************************************************/
-function calculateRollingWindowSales(sku, logs, today) {
-  var sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
-  var thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-  
-  var last7DaysTotal = 0;
-  var last30DaysTotal = 0;
-  
-  // Calculate sales in the last 7 and 30 days
-  logs.forEach(function (log) {
-    if (log["Mode"] === "SALE" && log["SourceLocation"] === "Shop" && log["SKU"] === sku) {
-      var saleDate = log["Timestamp"] || today;
-      var qty = Number(log["Quantity"]) || 0;
-      
-      // Last 7 days
-      if (saleDate >= sevenDaysAgo) {
-        last7DaysTotal += qty;
-      }
-      
-      // Last 30 days
-      if (saleDate >= thirtyDaysAgo) {
-        last30DaysTotal += qty;
-      }
-    }
-  });
-  
-  return {
-    last7Days: last7DaysTotal,
-    last30Days: last30DaysTotal
-  };
+
+/**
+ * Check if a cell contains a formula
+ * @param {Sheet} sheet - The Google Sheet
+ * @param {number} row - Row number (1-based)
+ * @param {number} col - Column number (1-based)
+ * @return {boolean} True if cell contains formula
+ */
+function hasFormula(sheet, row, col) {
+  try {
+    var cell = sheet.getRange(row, col);
+    var formula = cell.getFormula();
+    return formula.startsWith('=');
+  } catch (error) {
+    addLog("Error checking formula in cell " + row + "," + col + ": " + error.toString());
+    return false;
+  }
 }
+
+/**
+ * Create Last7Days formula for a specific SKU
+ * @param {string} sku - The SKU to create formula for
+ * @return {string} The formula string
+ */
+function createLast7DaysFormula(sku) {
+  return '=SUMIFS(\'Inventory Log\'!D:D, \'Inventory Log\'!E:E, "SALE", \'Inventory Log\'!F:F, "Shop", \'Inventory Log\'!C:C, "' + sku + '", \'Inventory Log\'!B:B, ">="&TODAY()-7)';
+}
+
+/**
+ * Create Last30Days formula for a specific SKU
+ * @param {string} sku - The SKU to create formula for
+ * @return {string} The formula string
+ */
+function createLast30DaysFormula(sku) {
+  return '=SUMIFS(\'Inventory Log\'!D:D, \'Inventory Log\'!E:E, "SALE", \'Inventory Log\'!F:F, "Shop", \'Inventory Log\'!C:C, "' + sku + '", \'Inventory Log\'!B:B, ">="&TODAY()-30)';
+}
+
+/**
+ * Create CumulativeValue formula for a specific row
+ * @param {number} rowIndex - Row index in Sales Snapshot (1-based)
+ * @return {string} The formula string
+ */
+function createCumulativeValueFormula(rowIndex) {
+  return '=VLOOKUP(B' + rowIndex + ', \'Product Master\'!B:E, 4, FALSE) * C' + rowIndex;
+}
+
+/**
+ * Create Last7DaysSales formula for Inventory Snapshot
+ * Looks up Last7Days from Sales Snapshot for the same SKU
+ * @param {string} sku - The SKU to create formula for
+ * @return {string} The formula string
+ */
+function createLast7DaysSalesFormula(sku) {
+  return '=IFERROR(VLOOKUP("' + sku + '", \'Sales Snapshot\'!B:D, 3, FALSE), 0)';
+}
+
+/**
+ * Auto-fill formulas for Last7Days, Last30Days, and CumulativeValue columns
+ * Only inserts formulas if they don't already exist
+ * @param {string} sku - The SKU to create formulas for
+ * @param {number} rowIndex - Row index in Sales Snapshot (1-based)
+ */
+function autoFillFormulas(sku, rowIndex) {
+  if (!salesSnapshotSheet) {
+    addLog("ERROR: Sales Snapshot sheet not found for auto-fill");
+    return;
+  }
+  
+  try {
+    var last7DaysCol = 4; // Column D
+    var last30DaysCol = 5; // Column E
+    var cumulativeValueCol = 9; // Column I
+    
+    addLog("Auto-filling formulas for SKU: " + sku + " at row: " + rowIndex);
+    
+    // Only insert Last7Days formula if no formula exists
+    if (!hasFormula(salesSnapshotSheet, rowIndex, last7DaysCol)) {
+      var last7DaysFormula = createLast7DaysFormula(sku);
+      salesSnapshotSheet.getRange(rowIndex, last7DaysCol).setFormula(last7DaysFormula);
+      addLog("Inserted Last7Days formula for SKU: " + sku);
+    } else {
+      addLog("Last7Days formula already exists for SKU: " + sku + ", skipping");
+    }
+    
+    // Only insert Last30Days formula if no formula exists
+    if (!hasFormula(salesSnapshotSheet, rowIndex, last30DaysCol)) {
+      var last30DaysFormula = createLast30DaysFormula(sku);
+      salesSnapshotSheet.getRange(rowIndex, last30DaysCol).setFormula(last30DaysFormula);
+      addLog("Inserted Last30Days formula for SKU: " + sku);
+    } else {
+      addLog("Last30Days formula already exists for SKU: " + sku + ", skipping");
+    }
+    
+    // Only insert CumulativeValue formula if no formula exists
+    if (!hasFormula(salesSnapshotSheet, rowIndex, cumulativeValueCol)) {
+      var cumulativeValueFormula = createCumulativeValueFormula(rowIndex);
+      salesSnapshotSheet.getRange(rowIndex, cumulativeValueCol).setFormula(cumulativeValueFormula);
+      addLog("Inserted CumulativeValue formula for SKU: " + sku);
+    } else {
+      addLog("CumulativeValue formula already exists for SKU: " + sku + ", skipping");
+    }
+    
+  } catch (error) {
+    addLog("Error auto-filling formulas for SKU " + sku + ": " + error.toString());
+  }
+}
+
+/**
+ * Auto-fill Last7DaysSales formula for Inventory Snapshot
+ * Only inserts formula if it doesn't already exist
+ * @param {string} sku - The SKU to create formula for
+ * @param {number} rowIndex - Row index in Inventory Snapshot (1-based)
+ */
+function autoFillInventoryFormulas(sku, rowIndex) {
+  if (!snapshotSheet) {
+    addLog("ERROR: Inventory Snapshot sheet not found for auto-fill");
+    return;
+  }
+  
+  try {
+    var last7DaysSalesCol = 9; // Column I (Last7DaysSales)
+    
+    addLog("Auto-filling Last7DaysSales formula for SKU: " + sku + " at row: " + rowIndex);
+    
+    // Only insert Last7DaysSales formula if no formula exists
+    if (!hasFormula(snapshotSheet, rowIndex, last7DaysSalesCol)) {
+      var last7DaysSalesFormula = createLast7DaysSalesFormula(sku);
+      snapshotSheet.getRange(rowIndex, last7DaysSalesCol).setFormula(last7DaysSalesFormula);
+      addLog("Inserted Last7DaysSales formula for SKU: " + sku);
+    } else {
+      addLog("Last7DaysSales formula already exists for SKU: " + sku + ", skipping");
+    }
+    
+  } catch (error) {
+    addLog("Error auto-filling Last7DaysSales formula for SKU " + sku + ": " + error.toString());
+  }
+}
+
+/**
+ * Check if a row needs formula processing
+ * @param {string} sku - The SKU to check
+ * @param {number} rowIndex - Row index in Sales Snapshot (1-based)
+ * @return {boolean} True if row needs GAS processing
+ */
+function needsFormulaProcessing(sku, rowIndex) {
+  if (!salesSnapshotSheet) {
+    return true; // Fall back to GAS processing if sheet not found
+  }
+  
+  try {
+    var last7DaysCol = 4; // Column D
+    var last30DaysCol = 5; // Column E
+    var cumulativeValueCol = 9; // Column I
+    
+    // If all three columns have formulas, skip GAS processing
+    if (hasFormula(salesSnapshotSheet, rowIndex, last7DaysCol) && 
+        hasFormula(salesSnapshotSheet, rowIndex, last30DaysCol) &&
+        hasFormula(salesSnapshotSheet, rowIndex, cumulativeValueCol)) {
+      addLog("SKU " + sku + " has all formulas, skipping GAS processing");
+      return false;
+    }
+    
+    addLog("SKU " + sku + " needs GAS processing (missing formulas)");
+    return true;
+    
+  } catch (error) {
+    addLog("Error checking formula status for SKU " + sku + ": " + error.toString());
+    return true; // Fall back to GAS processing on error
+  }
+}
+
 
 /*************************************************
  * UPDATE SALES SNAPSHOT
@@ -657,16 +809,8 @@ function updateSalesSnapshot(salesUpdates) {
     salesMap.set(sku, rec);
   });
 
-  // Get all logs for proper rolling window calculation
-  var allLogs = getSheetData(logSheet);
-  
-  // Calculate proper rolling windows for all affected SKUs
-  salesMap.forEach((rec, sku) => {
-    var rollingData = calculateRollingWindowSales(sku, allLogs, today);
-    rec.last7 = rollingData.last7Days;
-    rec.last30 = rollingData.last30Days;
-    addLog("Calculated rolling windows for " + sku + ": Last7Days=" + rollingData.last7Days + ", Last30Days=" + rollingData.last30Days);
-  });
+  // All rolling window calculations now use formulas - no GAS processing needed
+  addLog("All rolling window calculations now use formulas - no GAS processing needed");
 
   // Create a filtered map containing only affected SKUs for batch update
   var affectedSKUsForUpdate = new Map();
@@ -687,14 +831,7 @@ function updateSalesSnapshot(salesUpdates) {
         updateValues.push(rec.total);
         updateColumns.push(totalSoldIndex + 1);
       }
-      if (last7DaysIndex !== -1) {
-        updateValues.push(rec.last7);
-        updateColumns.push(last7DaysIndex + 1);
-      }
-      if (last30DaysIndex !== -1) {
-        updateValues.push(rec.last30);
-        updateColumns.push(last30DaysIndex + 1);
-      }
+      // Last7Days and Last30Days are now handled by formulas - no GAS updates needed
       if (lastSoldDateIndex !== -1) {
         // Ensure the date is properly formatted for Google Sheets
         var formattedDate = rec.lastSold instanceof Date ? rec.lastSold : new Date(rec.lastSold);
@@ -719,19 +856,25 @@ function updateSalesSnapshot(salesUpdates) {
         salesSnapshotSheet.getRange(rec.rowIndex, colIndex).setValue(value);
       });
       
-      addLog("Updated existing sales record for affected SKU " + sku + ": Total=" + rec.total + ", TodaySales=" + rec.todaySales + ", Last7Days=" + rec.last7 + ", Last30Days=" + rec.last30);
+      addLog("Updated existing sales record for affected SKU " + sku + ": Total=" + rec.total + ", TodaySales=" + rec.todaySales + " (Last7Days/Last30Days handled by formulas)");
+      
+      // AUTO-FILL FORMULAS: Check if this existing row needs formulas
+      if (needsFormulaProcessing(sku, rec.rowIndex)) {
+        addLog("Auto-filling formulas for existing SKU that needs them: " + sku);
+        autoFillFormulas(sku, rec.rowIndex);
+      }
     } else {
       // Append new row
       var newRow = [
         sku, // SnapshotID
         sku, // SKU
         rec.total, // TotalSold
-        rec.last7, // Last7Days
-        rec.last30, // Last30Days
+        0, // Last7Days (will be replaced with formula)
+        0, // Last30Days (will be replaced with formula)
         formatDateForSheet(rec.lastSold instanceof Date ? rec.lastSold : new Date(rec.lastSold)), // LastSoldDate - ensure proper Date object
         formatDateForSheet(new Date()), // LastUpdated
         parseInt(rec.todaySales) || 0, // TodaySales - ensure it's a number
-        0, // CumulativeValue (will be calculated below)
+        0, // CumulativeValue (will be replaced with formula)
         "" // TopSellerRank (will be calculated below)
       ];
       salesSnapshotSheet.appendRow(newRow);
@@ -740,7 +883,11 @@ function updateSalesSnapshot(salesUpdates) {
       var newRowIndex = salesSnapshotSheet.getLastRow();
       rec.rowIndex = newRowIndex;
       
-      addLog("Appended new sales record for affected SKU " + sku + " at row " + newRowIndex + ": " + JSON.stringify(newRow));
+      addLog("Appended new sales record for affected SKU " + sku + " at row " + newRowIndex + " (Last7Days/Last30Days will be handled by formulas)");
+      
+      // AUTO-FILL FORMULAS: Insert formulas for Last7Days and Last30Days
+      addLog("Auto-filling formulas for new SKU: " + sku);
+      autoFillFormulas(sku, newRowIndex);
     }
   });
   
@@ -787,46 +934,42 @@ function updateSalesCalculatedColumns(salesMap) {
     return;
   }
 
-  // Calculate cumulative values and prepare for ranking
-  var salesWithValues = [];
+  // CumulativeValue is now handled by formulas - only calculate TopSellerRank
+  // Get all SKUs with their CumulativeValue from formulas for ranking
+  var allSKUsWithValues = [];
   
-  // Only process affected SKUs, not all sales data
-  salesMap.forEach((rec, sku) => {
-    var unitPrice = productMap.get(sku) || 0;
-    var cumulativeValue = rec.total * unitPrice;
+  // Read all rows to get CumulativeValue from formulas
+  for (var i = 1; i < salesData.length; i++) {
+    var row = salesData[i];
+    var sku = row[skuIndex];
+    var totalSold = row[totalSoldIndex];
+    var cumulativeValue = row[cumulativeValueIndex];
     
-    salesWithValues.push({
+    if (sku && sku.trim() !== "") {
+      allSKUsWithValues.push({
       sku: sku,
-      totalSold: rec.total,
+        totalSold: totalSold,
       cumulativeValue: cumulativeValue,
-      rowIndex: rec.rowIndex
+        rowIndex: i + 1
     });
-    
-    addLog("Calculated cumulative value for affected SKU " + sku + ": " + rec.total + " × " + unitPrice + " = " + cumulativeValue);
-  });
+    }
+  }
 
   // Sort by cumulative value for ranking
-  salesWithValues.sort((a, b) => b.cumulativeValue - a.cumulativeValue);
+  allSKUsWithValues.sort((a, b) => b.cumulativeValue - a.cumulativeValue);
 
-  // Update calculated columns for affected rows only
-  salesWithValues.forEach((item, index) => {
+  // Update TopSellerRank for all rows
+  allSKUsWithValues.forEach((item, index) => {
     var rank = index + 1;
     var topSellerRank = rank <= 10 ? rank.toString() : ""; // Just the number, not "Top 1"
     
-    if (item.rowIndex !== -1) {
-      // Update cumulative value
-      salesSnapshotSheet.getRange(item.rowIndex, cumulativeValueIndex + 1).setValue(item.cumulativeValue);
-      
-      // Update top seller rank
-      if (topSellerRankIndex !== -1) {
+    if (item.rowIndex !== -1 && topSellerRankIndex !== -1) {
         salesSnapshotSheet.getRange(item.rowIndex, topSellerRankIndex + 1).setValue(topSellerRank);
-      }
-      
-      addLog("Updated calculated columns for affected SKU " + item.sku + " at row " + item.rowIndex + ": CumulativeValue=" + item.cumulativeValue + ", TopSellerRank=" + topSellerRank);
+      addLog("Updated TopSellerRank for SKU " + item.sku + " at row " + item.rowIndex + ": Rank=" + topSellerRank);
     }
   });
 
-  addLog("Sales calculated columns update completed for " + salesWithValues.length + " items");
+  addLog("Sales calculated columns update completed for " + allSKUsWithValues.length + " items");
 }
 
 /*************************************************
@@ -924,10 +1067,9 @@ function updateInventorySalesFields(salesUpdates) {
         }
         
         if (last7DaysSalesIndex !== -1) {
-          // Calculate proper 7-day rolling window
-          var rollingData = calculateRollingWindowSales(sku, allLogs, today);
-          snapshotSheet.getRange(rowIndex, last7DaysSalesIndex + 1).setValue(rollingData.last7Days);
-          addLog("Updated Last7DaysSales for SKU " + sku + " (Shop): " + rollingData.last7Days + " (proper rolling window)");
+          // Last7DaysSales is now handled by formula - auto-fill if needed
+          autoFillInventoryFormulas(sku, rowIndex);
+          addLog("Last7DaysSales handled by formula for SKU " + sku + " (Shop)");
         }
         
         if (lastUpdatedIndex !== -1) {
@@ -1198,12 +1340,9 @@ function updateSnapshots() {
             var daysSinceLastSale = Math.floor((today - saleDate) / (1000 * 60 * 60 * 24));
             snapshot[key].DaysSinceLastSale = daysSinceLastSale;
             
-            // Retrieve Last7DaysSales from the sales snapshot (which has the real rolling window calculation)
-            if (sales[sku]) {
-              snapshot[key].Last7DaysSales = sales[sku].Last7Days;
-            }
+            // Last7DaysSales is now handled by formula - no GAS calculation needed
             
-            addLog("Updated sales fields for SKU " + sku + " at Shop location: DaysSinceLastSale=" + daysSinceLastSale + ", Last7DaysSales=" + snapshot[key].Last7DaysSales);
+            addLog("Updated sales fields for SKU " + sku + " at Shop location: DaysSinceLastSale=" + daysSinceLastSale + " (Last7DaysSales handled by formula)");
             break;
           }
         }
@@ -1217,10 +1356,19 @@ function updateSnapshots() {
     addLog("Writing inventory snapshot with " + Object.keys(snapshot).length + " entries");
     for (var key in snapshot) {
       var s = snapshot[key];
-      addLog("Inventory entry: " + s.SKU + " at " + s.Location + " - Stock: " + s.CurrentStock + ", Value: " + s.InventoryValue + ", DaysSinceLastSale: " + s.DaysSinceLastSale + ", Last7DaysSales: " + s.Last7DaysSales);
+      addLog("Inventory entry: " + s.SKU + " at " + s.Location + " - Stock: " + s.CurrentStock + ", Value: " + s.InventoryValue + ", DaysSinceLastSale: " + s.DaysSinceLastSale + " (Last7DaysSales handled by formula)");
       snapshotSheet.appendRow([
-        s.SnapshotID, s.SKU, s.Location, s.CurrentStock, formatDateForSheet(s.LastUpdated), s.InventoryValue, s.DaysSinceLastSale, s.StockStatus, s.Last7DaysSales
+        s.SnapshotID, s.SKU, s.Location, s.CurrentStock, formatDateForSheet(s.LastUpdated), s.InventoryValue, s.DaysSinceLastSale, s.StockStatus, 0 // Last7DaysSales will be replaced with formula
       ]);
+    }
+    
+    // Auto-fill Last7DaysSales formulas for all inventory rows
+    addLog("Auto-filling Last7DaysSales formulas for all inventory rows");
+    for (var i = 2; i <= snapshotSheet.getLastRow(); i++) { // Start from row 2 (skip header)
+      var sku = snapshotSheet.getRange(i, 2).getValue(); // SKU is in column B
+      if (sku && sku.trim() !== "") {
+        autoFillInventoryFormulas(sku, i);
+      }
     }
 
     // === SALES SNAPSHOT ===
